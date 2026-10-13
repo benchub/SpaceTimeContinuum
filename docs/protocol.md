@@ -20,9 +20,9 @@ Continuum app (this repo) and the leaderboard server (private repo
 
 | Header | Required | Value |
 |---|---|---|
-| `X-STC-Protocol` | yes | `1` |
+| `X-STC-Protocol` | yes (except `GET /units`) | `1` |
 | `X-STC-Token` | on `/sample`, `/name` | Per-device secret: 64 hex chars (32 random bytes) generated alongside the GUID. Never displayed to the user. |
-| `User-Agent` | yes | `SpaceTimeContinuum/<app version> (<os name> <os version>)` |
+| `User-Agent` | yes | `SpaceTimeContinuum/<app version> (<os name> <os version>)` (presence is required; format is informational) |
 
 ### Device identity (trust on first use)
 
@@ -49,7 +49,7 @@ Any non-2xx response has the body:
 | 401 | Token missing or does not match the device |
 | 409 | Conflict (name unavailable — see `/name`) |
 | 413 | Too many samples in one request |
-| 429 | Rate limited. `Retry-After` header (seconds) is set. |
+| 429 | Rate limited. `Retry-After` header (seconds) is set. Limits are server-defined and may change. |
 | 5xx | Server problem. Client retries later. |
 
 ## Endpoints
@@ -99,6 +99,9 @@ Request:
 | `pointer_active_s` | Seconds (0–60) containing pointer movement. |
 | `pointer_distance_m` | Physical on-screen distance the pointer travelled. |
 | `any_active_s` | Seconds (0–60) containing key presses **or** pointer movement. |
+
+A sample whose `minute_start` is missing or not an integer makes the whole request fail
+with `400`, since it couldn't be reported in `rejected`.
 
 Server validation for each sample (if it fails, the sample is *rejected*, not the request):
 
@@ -153,7 +156,7 @@ Requires `X-STC-Token`. Empty body.
 | Code | Body | Meaning |
 |---|---|---|
 | 200 | `{ "status": "success", "name": "SpaceCadet" }` | Name is now owned by this GUID (any previous name is released). |
-| 409 | `{ "status": "unavailable", "name": "SpaceCadet" }` | Someone else owns it (possibly just won a race). |
+| 409 | `{ "status": "unavailable", "name": "SpaceCadet" }` | Someone else owns it (possibly just won a race), or the name is reserved. |
 | 4xx/5xx | `{ "status": "error", "message": "..." }` | Anything else (invalid syntax, auth, server error). |
 
 ### `GET /units` — New Entropy silly units
