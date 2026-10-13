@@ -172,4 +172,5 @@ The public leaderboard (HTML, not part of the app protocol) ranks devices that h
 name by keyboard distance, pointer distance and active time (`any_active_s`) over
 **today**, **this week** (Monday-start) and **all time**, using UTC day boundaries. A
 map shows named devices at the approximate location of their most recent IP address
-(city-level geolocation, possibly wrong).
+(city-level geolocation, possibly wrong). Devices that haven't uploaded for 2 months are
+hidden from the leaderboard and map until they upload again; their data is kept.
