@@ -1,0 +1,1223 @@
+{
+  "version": 1,
+  "defaults": {
+    "builtin_laptop_mm": 1.0,
+    "mechanical_mm": 3.0,
+    "unknown_external_mm": 2.0
+  },
+  "keyboards": [
+    {
+      "name": "MacBook Air 2018-2019 (butterfly)",
+      "vendor_id": 1452,
+      "product_ids": [
+        634
+      ],
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 0.55,
+      "switch": "Butterfly"
+    },
+    {
+      "name": "MacBook Pro 13-inch 2018-2019 (butterfly)",
+      "vendor_id": 1452,
+      "product_ids": [
+        635,
+        637
+      ],
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 0.55,
+      "switch": "Butterfly"
+    },
+    {
+      "name": "MacBook Pro 15-inch 2018-2019 (butterfly)",
+      "vendor_id": 1452,
+      "product_ids": [
+        636,
+        632
+      ],
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 0.55,
+      "switch": "Butterfly"
+    },
+    {
+      "name": "MacBook Pro 13-inch 2020 Intel (Magic Keyboard)",
+      "vendor_id": 1452,
+      "product_ids": [
+        638,
+        639
+      ],
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 1.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "MacBook Air 2020 Intel (Magic Keyboard)",
+      "vendor_id": 1452,
+      "product_ids": [
+        640
+      ],
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 1.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "MacBook Pro 16-inch 2019 (Magic Keyboard)",
+      "vendor_id": 1452,
+      "product_ids": [
+        832
+      ],
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 1.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Apple built-in keyboard",
+      "name_patterns": [
+        "internal keyboard"
+      ],
+      "travel_mm": 1.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Apple Magic Keyboard",
+      "name_patterns": [
+        "magic keyboard"
+      ],
+      "travel_mm": 1.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Apple Wireless Keyboard (aluminum)",
+      "name_patterns": [
+        "apple wireless keyboard"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Apple Keyboard (aluminum, wired)",
+      "name_patterns": [
+        "apple keyboard"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Kinesis Advantage360",
+      "name_patterns": [
+        "adv360"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron Brown"
+    },
+    {
+      "name": "Kinesis Advantage360 Pro",
+      "name_patterns": [
+        "advantage360"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron Brown"
+    },
+    {
+      "name": "Kinesis Advantage2",
+      "name_patterns": [
+        "advantage2"
+      ],
+      "travel_mm": 4.1,
+      "switch": "Cherry MX Brown"
+    },
+    {
+      "name": "Kinesis Advantage",
+      "vendor_id": 10730,
+      "name_patterns": [
+        "advantage"
+      ],
+      "travel_mm": 4.1,
+      "switch": "Cherry MX Brown"
+    },
+    {
+      "name": "Kinesis Freestyle Edge",
+      "name_patterns": [
+        "freestyle edge"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Kinesis Freestyle Pro",
+      "name_patterns": [
+        "freestyle pro"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Kinesis Freestyle2",
+      "name_patterns": [
+        "freestyle"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Kinesis mWave",
+      "name_patterns": [
+        "mwave"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Kinesis (other)",
+      "vendor_id": 10730,
+      "name_patterns": [],
+      "travel_mm": 4.0
+    },
+    {
+      "name": "Logitech MX Mechanical",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "mx mechanical"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Kailh Choc V2"
+    },
+    {
+      "name": "Logitech MX Keys",
+      "name_patterns": [
+        "mx keys"
+      ],
+      "travel_mm": 1.8,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Logitech Craft",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "craft"
+      ],
+      "travel_mm": 1.8,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Logitech ERGO K860",
+      "name_patterns": [
+        "k860"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Logitech Wave Keys",
+      "name_patterns": [
+        "wave keys"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Logitech K380",
+      "name_patterns": [
+        "k380"
+      ],
+      "travel_mm": 1.5,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Logitech Pebble Keys",
+      "name_patterns": [
+        "pebble keys"
+      ],
+      "travel_mm": 1.5,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Logitech K780",
+      "name_patterns": [
+        "k780"
+      ],
+      "travel_mm": 1.5,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Logitech K120",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "k120"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Logitech K270",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "k270"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Logitech Signature K650",
+      "name_patterns": [
+        "k650"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Logitech POP Keys",
+      "name_patterns": [
+        "pop keys"
+      ],
+      "travel_mm": 3.2,
+      "switch": "TTC mechanical"
+    },
+    {
+      "name": "Logitech K845",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "k845"
+      ],
+      "travel_mm": 4.0,
+      "switch": "TTC mechanical"
+    },
+    {
+      "name": "Logitech G915",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g915"
+      ],
+      "travel_mm": 2.7,
+      "switch": "GL low profile"
+    },
+    {
+      "name": "Logitech G913",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g913"
+      ],
+      "travel_mm": 2.7,
+      "switch": "GL low profile"
+    },
+    {
+      "name": "Logitech G815",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g815"
+      ],
+      "travel_mm": 2.7,
+      "switch": "GL low profile"
+    },
+    {
+      "name": "Logitech G813",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g813"
+      ],
+      "travel_mm": 2.7,
+      "switch": "GL low profile"
+    },
+    {
+      "name": "Logitech G910",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g910"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Romer-G"
+    },
+    {
+      "name": "Logitech G413",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g413"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Romer-G"
+    },
+    {
+      "name": "Logitech G213",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "g213"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mech-Dome"
+    },
+    {
+      "name": "Logitech G PRO",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "pro"
+      ],
+      "travel_mm": 4.0,
+      "switch": "GX"
+    },
+    {
+      "name": "Logitech G (other gaming)",
+      "vendor_id": 1133,
+      "name_patterns": [
+        "gaming keyboard"
+      ],
+      "travel_mm": 4.0,
+      "switch": "GX"
+    },
+    {
+      "name": "Microsoft Surface type cover",
+      "vendor_id": 1118,
+      "name_patterns": [
+        "type cover"
+      ],
+      "travel_mm": 1.3,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Microsoft Surface Ergonomic Keyboard",
+      "name_patterns": [
+        "surface ergonomic"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Microsoft Surface Keyboard",
+      "name_patterns": [
+        "surface keyboard"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Microsoft Sculpt Ergonomic Keyboard",
+      "vendor_id": 1118,
+      "name_patterns": [
+        "sculpt"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Microsoft Natural Ergonomic Keyboard 4000",
+      "vendor_id": 1118,
+      "name_patterns": [
+        "natural"
+      ],
+      "travel_mm": 3.8,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Microsoft Ergonomic Keyboard",
+      "vendor_id": 1118,
+      "name_patterns": [
+        "ergonomic"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Microsoft Designer Compact Keyboard",
+      "vendor_id": 1118,
+      "name_patterns": [
+        "designer"
+      ],
+      "travel_mm": 1.5,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Microsoft Wired Keyboard 600",
+      "vendor_id": 1118,
+      "name_patterns": [
+        "wired keyboard"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Keychron K10",
+      "name_patterns": [
+        "keychron k10"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Keychron K12",
+      "name_patterns": [
+        "keychron k12"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Keychron K14",
+      "name_patterns": [
+        "keychron k14"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Keychron K1 / K11 / K15 / K17 (low profile)",
+      "name_patterns": [
+        "keychron k1"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "Keychron K3 (low profile)",
+      "name_patterns": [
+        "keychron k3"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "Keychron K5 (low profile)",
+      "name_patterns": [
+        "keychron k5"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "Keychron K7 (low profile)",
+      "name_patterns": [
+        "keychron k7"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "Keychron K9 (low profile)",
+      "name_patterns": [
+        "keychron k9"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "Keychron Q series",
+      "name_patterns": [
+        "keychron q"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron Jupiter"
+    },
+    {
+      "name": "Keychron V series",
+      "name_patterns": [
+        "keychron v"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Keychron K Pro"
+    },
+    {
+      "name": "Keychron (other)",
+      "name_patterns": [
+        "keychron"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Keychron (QMK firmware)",
+      "vendor_id": 13364,
+      "name_patterns": [],
+      "travel_mm": 4.0
+    },
+    {
+      "name": "HHKB Studio",
+      "vendor_id": 1278,
+      "name_patterns": [
+        "studio"
+      ],
+      "travel_mm": 3.6,
+      "switch": "Linear mechanical"
+    },
+    {
+      "name": "HHKB Professional",
+      "name_patterns": [
+        "hhkb"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Topre"
+    },
+    {
+      "name": "Happy Hacking Keyboard",
+      "name_patterns": [
+        "happy hacking"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Topre"
+    },
+    {
+      "name": "PFU keyboard (other)",
+      "vendor_id": 1278,
+      "name_patterns": [],
+      "travel_mm": 4.0,
+      "switch": "Topre"
+    },
+    {
+      "name": "Realforce",
+      "name_patterns": [
+        "realforce"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Topre"
+    },
+    {
+      "name": "Topre (other)",
+      "vendor_id": 2131,
+      "name_patterns": [],
+      "travel_mm": 4.0,
+      "switch": "Topre"
+    },
+    {
+      "name": "Das Keyboard 5Q",
+      "vendor_id": 9456,
+      "name_patterns": [
+        "5q"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Gamma Zulu"
+    },
+    {
+      "name": "Das Keyboard 4 Professional",
+      "name_patterns": [
+        "das keyboard 4"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Das Keyboard 6 Professional",
+      "name_patterns": [
+        "das keyboard 6"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Das Keyboard MacTigr",
+      "name_patterns": [
+        "mactigr"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Cherry MX Low Profile"
+    },
+    {
+      "name": "Das Keyboard (other)",
+      "vendor_id": 9456,
+      "name_patterns": [],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Corsair K55",
+      "vendor_id": 6940,
+      "name_patterns": [
+        "k55"
+      ],
+      "travel_mm": 3.6,
+      "switch": "Rubber dome"
+    },
+    {
+      "name": "Corsair K57",
+      "vendor_id": 6940,
+      "name_patterns": [
+        "k57"
+      ],
+      "travel_mm": 3.6,
+      "switch": "Rubber dome"
+    },
+    {
+      "name": "Corsair K100",
+      "vendor_id": 6940,
+      "name_patterns": [
+        "k100"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Corsair OPX"
+    },
+    {
+      "name": "Corsair K70",
+      "vendor_id": 6940,
+      "name_patterns": [
+        "k70"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Corsair K95",
+      "vendor_id": 6940,
+      "name_patterns": [
+        "k95"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Corsair K65",
+      "vendor_id": 6940,
+      "name_patterns": [
+        "k65"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Corsair (other)",
+      "vendor_id": 6940,
+      "name_patterns": [],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Razer DeathStalker V2",
+      "vendor_id": 5426,
+      "name_patterns": [
+        "deathstalker"
+      ],
+      "travel_mm": 2.8,
+      "switch": "Razer low-profile optical"
+    },
+    {
+      "name": "Razer Cynosa",
+      "vendor_id": 5426,
+      "name_patterns": [
+        "cynosa"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Razer Ornata",
+      "vendor_id": 5426,
+      "name_patterns": [
+        "ornata"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Mecha-membrane"
+    },
+    {
+      "name": "Razer Huntsman",
+      "vendor_id": 5426,
+      "name_patterns": [
+        "huntsman"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Razer optical"
+    },
+    {
+      "name": "Razer BlackWidow",
+      "vendor_id": 5426,
+      "name_patterns": [
+        "blackwidow"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Razer Green"
+    },
+    {
+      "name": "Razer Pro Type",
+      "vendor_id": 5426,
+      "name_patterns": [
+        "pro type"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Razer Orange"
+    },
+    {
+      "name": "Razer (other)",
+      "vendor_id": 5426,
+      "name_patterns": [],
+      "travel_mm": 4.0
+    },
+    {
+      "name": "ZSA Voyager",
+      "vendor_id": 12951,
+      "name_patterns": [
+        "voyager"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Kailh Choc"
+    },
+    {
+      "name": "ZSA Moonlander",
+      "name_patterns": [
+        "moonlander"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "ZSA ErgoDox EZ",
+      "name_patterns": [
+        "ergodox"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "ZSA (other)",
+      "vendor_id": 12951,
+      "name_patterns": [],
+      "travel_mm": 4.0
+    },
+    {
+      "name": "Cherry MX Board 10.0",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "mx board 10"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Cherry MX Low Profile"
+    },
+    {
+      "name": "Cherry MX LP",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "mx lp"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Cherry MX Low Profile"
+    },
+    {
+      "name": "Cherry MX Board",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "mx board"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Cherry G80",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "g80"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Cherry KC 6000 Slim",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "kc 6000"
+      ],
+      "travel_mm": 1.8,
+      "switch": "Cherry SX scissor"
+    },
+    {
+      "name": "Cherry Stream",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "stream"
+      ],
+      "travel_mm": 2.0,
+      "switch": "Cherry SX scissor"
+    },
+    {
+      "name": "Cherry KC 1000",
+      "vendor_id": 1130,
+      "name_patterns": [
+        "kc 1000"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Cherry (other)",
+      "vendor_id": 1130,
+      "name_patterns": [],
+      "travel_mm": 3.5
+    },
+    {
+      "name": "SteelSeries Apex Pro",
+      "vendor_id": 4152,
+      "name_patterns": [
+        "apex pro"
+      ],
+      "travel_mm": 3.6,
+      "switch": "OmniPoint"
+    },
+    {
+      "name": "SteelSeries Apex 3",
+      "vendor_id": 4152,
+      "name_patterns": [
+        "apex 3"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "SteelSeries Apex",
+      "vendor_id": 4152,
+      "name_patterns": [
+        "apex"
+      ],
+      "travel_mm": 4.0,
+      "switch": "SteelSeries QX2"
+    },
+    {
+      "name": "SteelSeries (other)",
+      "vendor_id": 4152,
+      "name_patterns": [],
+      "travel_mm": 4.0
+    },
+    {
+      "name": "Lenovo ThinkPad TrackPoint Keyboard",
+      "vendor_id": 6127,
+      "name_patterns": [
+        "trackpoint"
+      ],
+      "travel_mm": 1.8,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Lenovo ThinkPad keyboard",
+      "vendor_id": 6127,
+      "name_patterns": [
+        "thinkpad"
+      ],
+      "travel_mm": 1.8,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Lenovo Legion keyboard",
+      "vendor_id": 6127,
+      "name_patterns": [
+        "legion"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    },
+    {
+      "name": "Alienware AW510K",
+      "name_patterns": [
+        "aw510k"
+      ],
+      "travel_mm": 3.2,
+      "switch": "Cherry MX Low Profile"
+    },
+    {
+      "name": "Alienware AW410K",
+      "name_patterns": [
+        "aw410k"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX Brown"
+    },
+    {
+      "name": "Dell KB216",
+      "vendor_id": 16700,
+      "name_patterns": [
+        "kb216"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Dell Premier keyboard",
+      "vendor_id": 16700,
+      "name_patterns": [
+        "premier"
+      ],
+      "travel_mm": 1.5,
+      "switch": "Scissor"
+    },
+    {
+      "name": "HyperX Alloy Origins",
+      "name_patterns": [
+        "alloy origins"
+      ],
+      "travel_mm": 3.8,
+      "switch": "HyperX mechanical"
+    },
+    {
+      "name": "HyperX Alloy",
+      "name_patterns": [
+        "hyperx"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    },
+    {
+      "name": "HP keyboard",
+      "vendor_id": 1008,
+      "name_patterns": [],
+      "travel_mm": 3.0,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Ducky One",
+      "name_patterns": [
+        "ducky"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Leopold FC660",
+      "name_patterns": [
+        "fc660"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Leopold FC750R",
+      "name_patterns": [
+        "fc750"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Leopold FC900R",
+      "name_patterns": [
+        "fc900"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Leopold FC980",
+      "name_patterns": [
+        "fc980"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Leopold",
+      "name_patterns": [
+        "leopold"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Varmilo",
+      "name_patterns": [
+        "varmilo"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Varmilo EC"
+    },
+    {
+      "name": "Glorious GMMK",
+      "name_patterns": [
+        "gmmk"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Glorious Fox"
+    },
+    {
+      "name": "Glorious",
+      "name_patterns": [
+        "glorious"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Glorious Fox"
+    },
+    {
+      "name": "NuPhy Air75",
+      "name_patterns": [
+        "air75"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "NuPhy Air60",
+      "name_patterns": [
+        "air60"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "NuPhy Air96",
+      "name_patterns": [
+        "air96"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Gateron low profile"
+    },
+    {
+      "name": "NuPhy Halo / Gem / Field",
+      "name_patterns": [
+        "nuphy"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Wooting",
+      "name_patterns": [
+        "wooting"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Lekker"
+    },
+    {
+      "name": "Akko",
+      "name_patterns": [
+        "akko"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Akko CS"
+    },
+    {
+      "name": "Royal Kludge",
+      "name_patterns": [
+        "royal kludge"
+      ],
+      "travel_mm": 4.0,
+      "switch": "RK mechanical"
+    },
+    {
+      "name": "Royal Kludge RK61",
+      "name_patterns": [
+        "rk61"
+      ],
+      "travel_mm": 4.0,
+      "switch": "RK mechanical"
+    },
+    {
+      "name": "Epomaker",
+      "name_patterns": [
+        "epomaker"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Anne Pro",
+      "name_patterns": [
+        "anne pro"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Gateron"
+    },
+    {
+      "name": "Filco Majestouch",
+      "name_patterns": [
+        "majestouch"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Unicomp",
+      "name_patterns": [
+        "unicomp"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Buckling spring"
+    },
+    {
+      "name": "Matias",
+      "name_patterns": [
+        "matias"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Matias Alps"
+    },
+    {
+      "name": "Lofree Flow",
+      "name_patterns": [
+        "lofree"
+      ],
+      "travel_mm": 2.8,
+      "switch": "Kailh low profile"
+    },
+    {
+      "name": "Glove80",
+      "name_patterns": [
+        "glove80"
+      ],
+      "travel_mm": 3.0,
+      "switch": "Kailh Choc"
+    },
+    {
+      "name": "Dygma Raise / Defy",
+      "name_patterns": [
+        "dygma"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    },
+    {
+      "name": "Keyboardio Model 100",
+      "name_patterns": [
+        "model 100"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    },
+    {
+      "name": "Keyboardio",
+      "name_patterns": [
+        "keyboardio"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    },
+    {
+      "name": "Massdrop / Drop",
+      "name_patterns": [
+        "massdrop"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Cherry MX"
+    },
+    {
+      "name": "Goldtouch",
+      "name_patterns": [
+        "goldtouch"
+      ],
+      "travel_mm": 3.5,
+      "switch": "Membrane"
+    },
+    {
+      "name": "Satechi slim keyboard",
+      "name_patterns": [
+        "satechi"
+      ],
+      "travel_mm": 1.5,
+      "switch": "Scissor"
+    },
+    {
+      "name": "Corne (crkbd)",
+      "name_patterns": [
+        "corne"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    },
+    {
+      "name": "Corne (crkbd) alt",
+      "name_patterns": [
+        "crkbd"
+      ],
+      "travel_mm": 4.0,
+      "switch": "Mechanical"
+    }
+  ]
+}
