@@ -26,6 +26,12 @@ public struct KeyboardDevice: Hashable, Codable, Sendable, Identifiable {
 
     /// Stable key used to remember per-keyboard travel settings.
     public var id: String { "\(vendorID):\(productID):\(productName)" }
+
+    /// Devices that present as keyboards but aren't ones you type on (security keys, the Touch Bar).
+    public static func isIgnored(productName: String, manufacturer: String? = nil) -> Bool {
+        let haystack = "\(productName) \(manufacturer ?? "")".lowercased()
+        return ["yubikey", "yubico", "touchbaruserdevice"].contains { haystack.contains($0) }
+    }
 }
 
 /// Watches keyboards and the pointer and feeds a `Recorder`.

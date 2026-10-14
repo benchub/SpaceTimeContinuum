@@ -8,6 +8,7 @@ struct ConversionToolView: View {
     @State private var metersText = ""
     @State private var timeResult = ""
     @State private var distanceResult = ""
+    @FocusState private var focused: MeasureKind?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -17,6 +18,7 @@ struct ConversionToolView: View {
         }
         .padding(20)
         .frame(minWidth: 460, minHeight: 220)
+        .onAppear { focused = .time }
     }
 
     private func row(title: String, text: Binding<String>, result: String, kind: MeasureKind) -> some View {
@@ -25,6 +27,11 @@ struct ConversionToolView: View {
             HStack {
                 TextField("0", text: text)
                     .textFieldStyle(.roundedBorder)
+                    .focused($focused, equals: kind)
+                    .onChange(of: text.wrappedValue) { _, new in
+                        let clean = Self.sanitize(new)
+                        if clean != new { text.wrappedValue = clean }
+                    }
                     .onSubmit { convert(text.wrappedValue, kind) }
                 Button("Convert") { convert(text.wrappedValue, kind) }
             }
@@ -32,6 +39,22 @@ struct ConversionToolView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    /// Digits and at most one period; a leading period gets a 0 in front.
+    private static func sanitize(_ input: String) -> String {
+        var out = ""
+        var seenPeriod = false
+        for ch in input {
+            if ch.isASCII, ch.isNumber {
+                out.append(ch)
+            } else if ch == ".", !seenPeriod {
+                seenPeriod = true
+                if out.isEmpty { out = "0" }
+                out.append(ch)
+            }
+        }
+        return out
     }
 
     private func convert(_ input: String, _ kind: MeasureKind) {

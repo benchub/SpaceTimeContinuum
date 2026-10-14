@@ -15,6 +15,7 @@ final class MacInputMonitor: InputMonitoring {
 
     private var manager: IOHIDManager?
     private var devices: [IOHIDDevice: KeyboardDevice] = [:]
+    private var ignoredDevices = Set<IOHIDDevice>()
     private var eventTap: CFMachPort?
     private var tapSource: CFRunLoopSource?
     private var fallbackMonitor: Any?
@@ -52,6 +53,7 @@ final class MacInputMonitor: InputMonitoring {
         }
         manager = nil
         devices.removeAll()
+        ignoredDevices.removeAll()
         if let tapSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), tapSource, .commonModes) }
         if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: false) }
         eventTap = nil
@@ -103,6 +105,10 @@ final class MacInputMonitor: InputMonitoring {
     private func deviceAdded(_ device: IOHIDDevice) {
         func prop<T>(_ key: String) -> T? { IOHIDDeviceGetProperty(device, key as CFString) as? T }
         let name: String = prop(kIOHIDProductKey) ?? "Unknown keyboard"
+        if KeyboardDevice.isIgnored(productName: name, manufacturer: prop(kIOHIDManufacturerKey)) {
+            ignoredDevices.insert(device)
+            return
+        }
         let transport: String = prop(kIOHIDTransportKey) ?? ""
         let builtIn = (prop(kIOHIDBuiltInKey) as Bool?) ?? false
             || ["SPI", "FIFO"].contains(transport)
@@ -118,6 +124,7 @@ final class MacInputMonitor: InputMonitoring {
     }
 
     private func deviceRemoved(_ device: IOHIDDevice) {
+        ignoredDevices.remove(device)
         devices[device] = nil
         onKeyboardsChanged?()
     }
@@ -129,6 +136,7 @@ final class MacInputMonitor: InputMonitoring {
         // 0x04... are real keys (0x00–0x03 are error/rollover codes); 0xE0–0xE7 are modifiers.
         guard (0x04...0xE7).contains(usage), IOHIDValueGetIntegerValue(value) == 1 else { return }
         let device = IOHIDElementGetDevice(element)
+        if ignoredDevices.contains(device) { return }
         let keyboard = devices[device] ?? KeyboardDevice(vendorID: 0, productID: 0, productName: "Unknown keyboard", isBuiltIn: false)
         onKeyPress?(keyboard)
     }

@@ -56,6 +56,16 @@ final class MacNotifier: Notifying {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
+    /// Whether macOS will actually show our notifications (always true when not running as an .app).
+    func checkAllowed(_ completion: @escaping @Sendable (Bool) -> Void) {
+        guard available else { completion(true); return }
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let status = settings.authorizationStatus
+            let allowed = status == .notDetermined || ((status == .authorized || status == .provisional) && settings.alertSetting != .disabled)
+            completion(allowed)
+        }
+    }
+
     func notify(title: String, body: String) {
         guard available else {
             NSLog("Notification: %@ — %@", title, body)

@@ -4,10 +4,11 @@ One day my physical therapist asked me how much time I spend on my mouse vs. my 
 
 **Behold!** It is now easy to:
 
-* Keep track of how much time you are using your keyboard vs your mouse/trackball/whatever.
+* Keep track of how much time you are using your keyboard vs your mouse.
 * Keep track of how your recent activity compares with past activity.
-* Get nanny reminders when it's time to go enjoy life for a few minutes away from your computer (if you want).
-* Easily measure the distance things have moved over time, in whatever silly unit makes the most sense to Space Time Continuum's algorithm.
+* Get nanny reminders when it's time to stretch for a few minutes away from your computer (if you want).
+* Be forced to give your aching wrists a break. If you don't have the willpower to stop, Space Time Continuum can take away your toys temporarily.
+* Easily measure the distance that things have moved over time, in whatever silly unit makes the most sense to Space Time Continuum's algorithm.
 * Join a leaderboard of dubious distinction.
 
 Space Time Continuum sits in your menu bar and tracks how much you use your input devices. Of course it does not track what you are actually typing or pointing at, just how often you smash your keys or wave your pointer around.
@@ -18,8 +19,8 @@ macOS is supported today. The code is laid out so Linux and Windows front ends c
 
 Each second it records:
 
-- **Pointer travel**: on-screen movement converted to physical distance using each display's reported size and pixel density. A move across displays with different densities is scaled by the average of the two.
-- **Key presses**: counted only, never logged. Distance is presses × the key travel of the keyboard that was pressed. Travel is set per keyboard in Configuration, and known keyboards are pre-filled from [`shared/keyboards.json`](shared/keyboards.json).
+- **Pointer travel**: on-screen movement converted to physical distance using each display's reported size and pixel density.
+- **Key presses**: How much your keys have moved up in the world, a few millimeters at a time. Distance is presses × the key travel of the keyboard that was pressed. Travel is set per keyboard in Configuration, and known keyboards are pre-filled from [`shared/keyboards.json`](shared/keyboards.json).
 - Whether the **screen was on** and whether the session was **unlocked**.
 
 At the start of every minute the previous 60 seconds are rolled up into one row in a local SQLite database. Running totals and graph caches are updated in the same transaction. Only minute rollups are stored. Per-second data is never kept beyond the current minute.
@@ -30,9 +31,10 @@ The database is `~/Library/Application Support/SpaceTimeContinuum/spacetime.sqli
 
 - **Menu bar**: today's keyboard and mouse time, plus lifetime distance, in silly units. Hover a line to see real units.
 - **Time Graphs**: Today, This week or This month, compared against yesterday, last week, last month, or a typical weekday, weekend or period.
-- **Nanny Mode** (opt-in): suggests a break when you've been active for at least 48 of the last 60 minutes, or unlocked with the screen on for the last two hours.
+- **Nanny Mode** (opt-in): suggests healthy breaks when you've been at it too long. "Too long" is configurable.
+- **Mistress Mode** (opt-in): enforces breaks to keep your RSI from acting up. Enforcement is configurable and optionally lets you break out with a safe word.
 - **New Entropy**: downloads fresh silly units from `https://spacetime.silentmedia.com/units` once a day.
-- **Leaderboard** (opt-in): If you want to brag about your usage to other addicts, you can.
+- **Leaderboard** (opt-in): If you want to brag about your usage to other addicts, Space Time Continuum will do it for you can.
 
 ## Building (macOS 14+)
 

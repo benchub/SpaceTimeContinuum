@@ -1,16 +1,34 @@
 import Foundation
 
+/// User-adjustable Nanny rules. Each rule can be switched on and tuned separately.
+public struct NannyRules: Codable, Equatable, Sendable {
+    /// Break when the screen has been on (and unlocked) for the whole of the last `screenOnHours`.
+    public var screenOnBreakEnabled = true
+    public var screenOnHours = 2
+    /// Break when at least `activityPercent`% of the minutes in the last `activityWindowHours` saw input.
+    public var activityBreakEnabled = true
+    public var activityPercent = 80
+    public var activityWindowHours = 1
+    /// Stretch every `stretchEveryMinutes` minutes of screen-on time.
+    public var stretchEnabled = false
+    public var stretchEveryMinutes = 30
+
+    public init() {}
+}
+
 /// Decides when to suggest a break.
 ///
-/// "Too much" is either:
+/// By default "too much" is either:
 /// - keyboard or pointer activity in at least 48 of the last 60 minutes (80%), or
 /// - screen on and unlocked for the whole of the last 2 hours.
 public struct Nanny: Sendable {
     public enum Reason: Equatable, Sendable {
-        case busyHour(activeMinutes: Int)
+        case busyHour(activeMinutes: Int, windowMinutes: Int)
         case longSession(minutes: Int)
     }
 
+    public var activityEnabled = true
+    public var sessionEnabled = true
     public var activeWindowMinutes = 60
     public var activeMinutesThreshold = 48
     public var sessionWindowMinutes = 120
@@ -22,21 +40,36 @@ public struct Nanny: Sendable {
 
     public init() {}
 
-    /// - Parameter recent: minute rows covering at least the last `sessionWindowMinutes`.
+    public init(rules: NannyRules) {
+        activityEnabled = rules.activityBreakEnabled
+        sessionEnabled = rules.screenOnBreakEnabled
+        activeWindowMinutes = max(1, rules.activityWindowHours) * 60
+        activeMinutesThreshold = max(1, (activeWindowMinutes * rules.activityPercent + 99) / 100)
+        sessionWindowMinutes = max(1, rules.screenOnHours) * 60
+    }
+
+    /// Minutes of history `evaluate` needs.
+    public var historyMinutes: Int { max(activeWindowMinutes, sessionWindowMinutes) }
+
+    /// - Parameter recent: minute rows covering at least `historyMinutes`.
     public func evaluate(recent: [MinuteRollup], now: Date, lastNagAt: Date?) -> Reason? {
         if let last = lastNagAt, now.timeIntervalSince(last) < cooldown { return nil }
         let nowMinute = Int64(now.timeIntervalSince1970) / 60 * 60
         let byMinute = Dictionary(recent.map { ($0.minuteStart, $0.activity) }, uniquingKeysWith: { $0.mergedWithinMinute($1) })
 
-        let activeStart = nowMinute - Int64(activeWindowMinutes * 60)
-        let active = byMinute.filter { $0.key >= activeStart && $0.key < nowMinute && $0.value.anyActiveSeconds > 0 }.count
-        if active >= activeMinutesThreshold { return .busyHour(activeMinutes: active) }
-
-        let sessionStart = nowMinute - Int64(sessionWindowMinutes * 60)
-        let allAttentive = stride(from: sessionStart, to: nowMinute, by: 60).allSatisfy {
-            (byMinute[$0]?.attentiveSeconds ?? 0) >= attentiveSecondsPerMinute
+        if activityEnabled {
+            let activeStart = nowMinute - Int64(activeWindowMinutes * 60)
+            let active = byMinute.filter { $0.key >= activeStart && $0.key < nowMinute && $0.value.anyActiveSeconds > 0 }.count
+            if active >= activeMinutesThreshold { return .busyHour(activeMinutes: active, windowMinutes: activeWindowMinutes) }
         }
-        if allAttentive { return .longSession(minutes: sessionWindowMinutes) }
+
+        if sessionEnabled {
+            let sessionStart = nowMinute - Int64(sessionWindowMinutes * 60)
+            let allAttentive = stride(from: sessionStart, to: nowMinute, by: 60).allSatisfy {
+                (byMinute[$0]?.attentiveSeconds ?? 0) >= attentiveSecondsPerMinute
+            }
+            if allAttentive { return .longSession(minutes: sessionWindowMinutes) }
+        }
         return nil
     }
 
@@ -49,12 +82,46 @@ public struct Nanny: Sendable {
         "Hydrate. Wander. Pet something. Back in 5.",
     ]
 
+    public static let stretchSuggestions = [
+        "Stand up and reach for the ceiling.",
+        "Roll your shoulders, shake out your wrists, look out a window.",
+        "Stretch your back, your neck and your fingers. 30 seconds is plenty.",
+        "Unfold yourself. Your spine will thank you.",
+    ]
+
+    /// Length of the break the suggestions ask for.
+    public static let breakMinutes = 5
+
     public static func message(for reason: Reason) -> (title: String, body: String) {
         let title: String
         switch reason {
-        case .busyHour(let m): title = "Busy hour: active \(m) of the last 60 minutes"
-        case .longSession: title = "You've been at it for 2 hours straight"
+        case .busyHour(let m, let window):
+            title = window == 60 ? "Busy hour: active \(m) of the last 60 minutes" : "Busy stretch: active \(m) of the last \(window) minutes"
+        case .longSession(let minutes):
+            let hours = minutes / 60
+            title = "You've been at it for \(hours == 1 ? "an hour" : "\(hours) hours") straight"
         }
         return (title, suggestions.randomElement()!)
     }
+
+    public static func stretchMessage() -> (title: String, body: String) {
+        ("Time for a stretch", stretchSuggestions.randomElement()!)
+    }
+}
+
+/// Counts screen-on time and says when it's time for a stretch.
+public struct StretchTracker: Sendable {
+    private var screenOnSeconds = 0
+
+    public init() {}
+
+    /// Adds screen-on seconds; returns true (and starts over) once `everyMinutes` have accumulated.
+    public mutating func add(screenOnSeconds seconds: Int, everyMinutes: Int) -> Bool {
+        screenOnSeconds += max(0, seconds)
+        guard everyMinutes > 0, screenOnSeconds >= everyMinutes * 60 else { return false }
+        screenOnSeconds = 0
+        return true
+    }
+
+    public mutating func reset() { screenOnSeconds = 0 }
 }

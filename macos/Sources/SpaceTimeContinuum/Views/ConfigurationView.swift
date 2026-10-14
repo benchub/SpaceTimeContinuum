@@ -3,7 +3,6 @@ import SwiftUI
 
 struct ConfigurationView: View {
     @ObservedObject var model: AppModel
-    var onDone: () -> Void
 
     @State private var leaderboardName = ""
     @State private var resetArmed = false
@@ -33,25 +32,125 @@ struct ConfigurationView: View {
                 }
                 leaderboardSection
                 Section("Extras") {
-                    Toggle("Nanny Mode", isOn: Binding(get: { model.settings.nannyEnabled }, set: { model.setNanny($0) }))
-                        .help("Provide helpful hints to take breaks.")
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Nanny Mode", isOn: Binding(get: { model.settings.nannyEnabled }, set: { model.setNanny($0) }))
+                            .help("Provide helpful hints to take breaks.")
+                        if model.settings.nannyEnabled { nannyControls }
+                    }
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Mistress Mode", isOn: Binding(get: { model.settings.mistressEnabled }, set: { model.setMistress($0) }))
+                            .help("Enforce breaks by blocking your keyboard and mouse.")
+                        if model.settings.mistressEnabled { mistressControls }
+                    }
                     Toggle("New Entropy", isOn: Binding(get: { model.settings.newEntropyEnabled }, set: { model.setNewEntropy($0) }))
                         .help("Periodically download new ways to measure things.")
                 }
                 Section("History") { resetButton }
             }
             .formStyle(.grouped)
-
-            Divider()
-            HStack {
-                Spacer()
-                Button("Done", action: onDone)
-                    .keyboardShortcut(.defaultAction)
-            }
-            .padding(12)
         }
         .frame(minWidth: 500, minHeight: 560)
         .onAppear { leaderboardName = model.settings.leaderboardName }
+    }
+
+    // MARK: Nanny / Mistress
+
+    private func setting<T>(_ keyPath: WritableKeyPath<AppSettings, T>) -> Binding<T> {
+        Binding(
+            get: { model.settings[keyPath: keyPath] },
+            set: { value in model.updateSettings { $0[keyPath: keyPath] = value } }
+        )
+    }
+
+    private func rule<Controls: View>(_ title: String, isOn: Binding<Bool>, @ViewBuilder controls: () -> Controls) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle(title, isOn: isOn)
+            HStack(spacing: 8) { controls() }
+                .padding(.leading, 20)
+                .disabled(!isOn.wrappedValue)
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// Up/down arrows immediately left of the value they adjust.
+    private func stepper(_ value: Binding<Int>, _ range: ClosedRange<Int>, step: Int = 1, unit: (Int) -> String) -> some View {
+        HStack(spacing: 4) {
+            Stepper("", value: value, in: range, step: step).labelsHidden()
+            Text("\(value.wrappedValue) \(unit(value.wrappedValue))").monospacedDigit()
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func hours(_ n: Int) -> String { n == 1 ? "hour" : "hours" }
+    private func minutes(_ n: Int) -> String { n == 1 ? "minute" : "minutes" }
+
+    private var nannyControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !model.notificationsAllowed {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Notifications are turned off", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.headline)
+                    Text("macOS isn't allowing Space Time Continuum to show notifications, so break and stretch suggestions won't appear. Enable them in System Settings → Notifications.")
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Open Notification Settings") { model.openNotificationSettings() }
+                }
+            }
+            rule("Suggest a break when the screen has been on for the last", isOn: setting(\.nannyRules.screenOnBreakEnabled)) {
+                stepper(setting(\.nannyRules.screenOnHours), 1...12, unit: hours)
+            }
+            rule("Suggest a break when either the keyboard or mouse have been used in at least", isOn: setting(\.nannyRules.activityBreakEnabled)) {
+                stepper(setting(\.nannyRules.activityPercent), 10...100, step: 5) { _ in "%" }
+                Text("of the minutes in the last")
+                stepper(setting(\.nannyRules.activityWindowHours), 1...12, unit: hours)
+            }
+            rule("Suggest a stretch every", isOn: setting(\.nannyRules.stretchEnabled)) {
+                stepper(setting(\.nannyRules.stretchEveryMinutes), 5...240, step: 5, unit: minutes)
+                Text("the screen is on")
+            }
+        }
+        .padding(.leading, 20)
+    }
+
+    private var mistressControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("The Mistress will not be ignored. Be sure what you are asking for.")
+                .foregroundStyle(.orange)
+            if !model.hasAccessibilityPermission {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Accessibility permission needed", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.headline)
+                    Text("Blocking input requires the Accessibility permission. Enable Space Time Continuum in System Settings → Privacy & Security → Accessibility. Until then, nothing will be blocked.")
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Button("Ask macOS") { model.requestAccessibilityPermission() }
+                        Button("Open Accessibility Settings") { model.openAccessibilitySettings() }
+                    }
+                }
+            }
+            HStack(spacing: 8) {
+                Text("Enforce suggestions after")
+                stepper(setting(\.mistressRules.warningMinutes), 1...30, unit: minutes)
+                Text("of warning")
+            }
+            .padding(.vertical, 4)
+            rule("No more keyboard usage for", isOn: setting(\.mistressRules.keyboardLockEnabled)) {
+                stepper(setting(\.mistressRules.keyboardLockMinutes), 1...60, unit: minutes)
+                Text("every")
+                stepper(setting(\.mistressRules.keyboardEveryMinutes), 5...480, step: 5, unit: minutes)
+            }
+            rule("No more mouse usage for", isOn: setting(\.mistressRules.mouseLockEnabled)) {
+                stepper(setting(\.mistressRules.mouseLockMinutes), 1...60, unit: minutes)
+                Text("every")
+                stepper(setting(\.mistressRules.mouseEveryMinutes), 5...480, step: 5, unit: minutes)
+            }
+            Toggle("Allow a safe word escape", isOn: setting(\.mistressRules.safeWordEnabled))
+                .help("Adds a button to the lockout counter that ends it early. While the mouse is blocked, the pointer can still move so you can reach it.")
+        }
+        .padding(.leading, 20)
     }
 
     // MARK: Sections
@@ -130,6 +229,9 @@ struct ConfigurationView: View {
     private var nameStatus: some View {
         if let msg = model.nameClaimMessage {
             Text(msg.text).font(.caption).foregroundStyle(msg.success ? .green : .red)
+        } else if !model.settings.leaderboardName.isEmpty,
+                  LeaderboardName.normalize(leaderboardName) == model.settings.leaderboardName {
+            Text("You can always change your name.").font(.caption).foregroundStyle(.primary)
         } else {
             switch model.nameState {
             case .idle: EmptyView()

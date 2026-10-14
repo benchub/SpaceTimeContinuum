@@ -15,6 +15,11 @@ final class AppModel: ObservableObject {
     @Published private(set) var nameClaimMessage: (text: String, success: Bool)?
     /// Bumped after every minute write so graphs can refresh.
     @Published private(set) var dataVersion = 0
+    /// The Mistress Mode warnings and lockouts in progress.
+    @Published private(set) var enforcements: [Enforcement] = []
+    @Published private(set) var hasAccessibilityPermission = false
+    @Published private(set) var notificationsAllowed = true
+    private var tickCount = 0
 
     let store: ActivityStore
     let keyboardCatalog: KeyboardCatalog
@@ -25,7 +30,13 @@ final class AppModel: ObservableObject {
     private let input = MacInputMonitor()
     private let loginItem = MacLoginItem()
     private let notifier = MacNotifier()
-    private let nanny = Nanny()
+    private var nanny: Nanny { Nanny(rules: settings.nannyRules) }
+    private var engine = EnforcementEngine()
+    private var blockedDevices: Set<InputDevice> = []
+    private var lockouts = LockoutScheduler()
+    private var stretch = StretchTracker()
+    private let blocker = MacInputBlocker()
+    private let overlay = EnforcementOverlay()
     private let client: LeaderboardClient
     private let unitsUpdater: UnitsUpdater
     private let sync: SyncService
@@ -76,12 +87,17 @@ final class AppModel: ObservableObject {
             MainActor.assumeIsolated { self?.persist(rollup) }
         }
         input.onKeyPress = { [weak self] keyboard in
-            guard let self else { return }
+            guard let self, !self.isBlocked(.keyboard) else { return }
             let meters = self.travelMetersByKeyboard[keyboard.id] ?? self.travelMeters(for: keyboard)
             self.recorder.recordKeyPress(travelMeters: meters)
         }
-        input.onPointerMove = { [weak self] meters in self?.recorder.recordPointerMovement(meters: meters) }
+        input.onPointerMove = { [weak self] meters in
+            guard let self, !self.isBlocked(.pointer) else { return }
+            self.recorder.recordPointerMovement(meters: meters)
+        }
         input.onKeyboardsChanged = { [weak self] in self?.keyboardsChanged() }
+        blocker.passThroughRects = { [weak self] in self?.overlay.frames ?? [] }
+        hasAccessibilityPermission = MacInputBlocker.isTrusted
 
         hasInputPermission = input.hasPermission
         if !hasInputPermission { input.requestPermission() }
@@ -126,6 +142,8 @@ final class AppModel: ObservableObject {
     /// Writes the partial minute; called before quitting.
     func shutdown() {
         tickTimer?.invalidate()
+        blocker.unblock()
+        overlay.hide()
         recorder.flush()
         input.stop()
         sync.stop()
@@ -138,6 +156,11 @@ final class AppModel: ObservableObject {
             hasInputPermission = granted
             if granted { input.restart() }
         }
+        let trusted = MacInputBlocker.isTrusted
+        if trusted != hasAccessibilityPermission { hasAccessibilityPermission = trusted }
+        tickCount += 1
+        if tickCount % 3 == 0 { refreshNotificationStatus() }
+        if engine.tick(now: Date()) { syncEnforcement() }
     }
 
     private func persist(_ rollup: MinuteRollup) {
@@ -148,6 +171,8 @@ final class AppModel: ObservableObject {
         }
         dataVersion += 1
         checkNanny()
+        checkStretch(rollup)
+        checkLockouts(rollup)
     }
 
     private func backgroundChores() {
@@ -174,13 +199,117 @@ final class AppModel: ObservableObject {
     private func checkNanny() {
         guard settings.nannyEnabled else { return }
         let now = Date()
-        let since = Int64(now.timeIntervalSince1970) - Int64(nanny.sessionWindowMinutes * 60) - 60
+        let nanny = nanny
+        let since = Int64(now.timeIntervalSince1970) - Int64(nanny.historyMinutes * 60) - 60
         guard let recent = try? store.minutes(from: since, to: Int64(now.timeIntervalSince1970) + 60),
               let reason = nanny.evaluate(recent: recent, now: now, lastNagAt: settings.lastNagAt)
         else { return }
         let message = Nanny.message(for: reason)
         notifier.notify(title: message.title, body: message.body)
         updateSettings { $0.lastNagAt = now }
+        if settings.mistressEnabled {
+            startEnforcement(devices: [.keyboard, .pointer], reason: message.title, lockMinutes: Nanny.breakMinutes)
+        }
+    }
+
+    private func checkStretch(_ rollup: MinuteRollup) {
+        guard settings.nannyEnabled, settings.nannyRules.stretchEnabled else { stretch.reset(); return }
+        if stretch.add(screenOnSeconds: rollup.activity.screenOnSeconds, everyMinutes: settings.nannyRules.stretchEveryMinutes) {
+            let message = Nanny.stretchMessage()
+            notifier.notify(title: message.title, body: message.body)
+        }
+    }
+
+    // MARK: Mistress Mode
+
+    private func isBlocked(_ device: InputDevice) -> Bool {
+        enforcements.contains { $0.phase == .locked && $0.devices.contains(device) }
+    }
+
+    private func checkLockouts(_ rollup: MinuteRollup) {
+        guard settings.mistressEnabled else { lockouts.reset(); return }
+        guard let trip = lockouts.ingest(minuteStart: rollup.minuteStart, activity: rollup.activity, rules: settings.mistressRules) else { return }
+        let what = trip.devices.count == 2 ? "keyboard and mouse" : (trip.devices.contains(.keyboard) ? "keyboard" : "mouse")
+        startEnforcement(devices: trip.devices, reason: "Time for a \(what) break", lockMinutes: trip.lockMinutes)
+    }
+
+    private func startEnforcement(devices: Set<InputDevice>, reason: String, lockMinutes: Int) {
+        guard MacInputBlocker.isTrusted else {
+            hasAccessibilityPermission = false
+            return
+        }
+        engine.request(
+            devices: devices, reason: reason,
+            lockSeconds: TimeInterval(max(1, lockMinutes) * 60),
+            warningSeconds: TimeInterval(settings.mistressRules.warningMinutes * 60),
+            now: Date()
+        )
+        syncEnforcement()
+    }
+
+    /// Brings the overlay and input blocker in line with the engine's current state.
+    private func syncEnforcement() {
+        enforcements = engine.active
+        let locked = engine.lockedDevices
+        if locked != blockedDevices {
+            blockedDevices = locked
+            if locked.isEmpty {
+                blocker.unblock()
+            } else if !blocker.block(locked, allowPointerMovement: settings.mistressRules.safeWordEnabled) {
+                // Couldn't block (Accessibility permission lost); skip these lockouts.
+                hasAccessibilityPermission = false
+                blockedDevices = []
+                engine.endAllLocks()
+                enforcements = engine.active
+            }
+        }
+        if enforcements.isEmpty { overlay.hide() } else { overlay.show(model: self, count: enforcements.count) }
+    }
+
+    /// "Just 5 more minutes" for one warning.
+    func extendWarning(_ id: Int) {
+        if engine.extendWarning(id: id, by: 5 * 60) { syncEnforcement() }
+    }
+
+    /// The safe word: ends one running lockout early.
+    func endLockout(_ id: Int) {
+        guard settings.mistressRules.safeWordEnabled else { return }
+        if engine.endLock(id: id) { syncEnforcement() }
+    }
+
+    func setMistress(_ enabled: Bool) {
+        updateSettings { $0.mistressEnabled = enabled }
+        if enabled {
+            if !MacInputBlocker.isTrusted { MacInputBlocker.requestTrust() }
+        } else {
+            engine.cancelAll()
+            lockouts.reset()
+            syncEnforcement()
+        }
+    }
+
+    func requestAccessibilityPermission() {
+        MacInputBlocker.requestTrust()
+    }
+
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func refreshNotificationStatus() {
+        notifier.checkAllowed { [weak self] allowed in
+            Task { @MainActor in
+                if self?.notificationsAllowed != allowed { self?.notificationsAllowed = allowed }
+            }
+        }
+    }
+
+    func openNotificationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     // MARK: Reading for the menu

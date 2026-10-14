@@ -2,6 +2,19 @@ import AppKit
 import STCCore
 import SwiftUI
 
+/// The app has no main menu, so Cmd-W is handled by the window itself.
+private final class CloseableWindow: NSWindow {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.type == .keyDown,
+           event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+           event.charactersIgnoringModifiers == "w" {
+            performClose(nil)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var model: AppModel!
@@ -128,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func showConfiguration() {
         show(id: "config", title: "Space Time Continuum \(AppModel.appVersion) Configuration", size: NSSize(width: 560, height: 720)) {
-            ConfigurationView(model: self.model) { [weak self] in self?.windows["config"]?.close() }
+            ConfigurationView(model: self.model)
         }
     }
 
@@ -155,7 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let controller = NSHostingController(rootView: content())
-        let window = NSWindow(contentViewController: controller)
+        let window = CloseableWindow(contentViewController: controller)
         window.title = title
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.setContentSize(size)

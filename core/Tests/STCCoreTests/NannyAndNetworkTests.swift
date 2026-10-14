@@ -17,7 +17,7 @@ final class NannyTests: XCTestCase {
         let nanny = Nanny()
         // 48 of the last 60 minutes active (12 idle), with a gap so the 2-hour rule doesn't fire.
         let recent = rows(60, active: { $0 > 12 }, attentive: 30)
-        XCTAssertEqual(nanny.evaluate(recent: recent, now: now, lastNagAt: nil), .busyHour(activeMinutes: 48))
+        XCTAssertEqual(nanny.evaluate(recent: recent, now: now, lastNagAt: nil), .busyHour(activeMinutes: 48, windowMinutes: 60))
         let lazier = rows(60, active: { $0 > 13 }, attentive: 30)
         XCTAssertNil(nanny.evaluate(recent: lazier, now: now, lastNagAt: nil))
     }

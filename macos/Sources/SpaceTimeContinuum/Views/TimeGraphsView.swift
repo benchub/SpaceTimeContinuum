@@ -265,9 +265,22 @@ private struct GraphChart: View {
             if let bin = selectedBin {
                 RuleMark(x: .value("Selected", bin.start))
                     .foregroundStyle(.gray.opacity(0.4))
-                    .annotation(position: .top, alignment: .center, spacing: 4, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        tooltip(bin)
-                    }
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                if let bin = selectedBin, let plot = proxy.plotFrame, let x = proxy.position(forX: bin.start) {
+                    let frame = geo[plot]
+                    let local = x + frame.minX
+                    let onLeft = local < geo.size.width / 2
+                    tooltip(bin)
+                        .fixedSize()
+                        .padding(.horizontal, 4)
+                        .padding(.top, 4)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: onLeft ? .topLeading : .topTrailing)
+                        .padding(onLeft ? .leading : .trailing, onLeft ? max(0, local + 6) : max(0, geo.size.width - local + 6))
+                        .allowsHitTesting(false)
+                }
             }
         }
         .chartXScale(domain: domain)
