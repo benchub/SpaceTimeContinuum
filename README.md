@@ -32,7 +32,7 @@ The database is `~/Library/Application Support/SpaceTimeContinuum/spacetime.sqli
 - **Time Graphs**: Today, This week or This month, compared against yesterday, last week, last month, or a typical weekday, weekend or period.
 - **Nanny Mode** (opt-in): suggests a break when you've been active for at least 48 of the last 60 minutes, or unlocked with the screen on for the last two hours.
 - **New Entropy**: downloads fresh silly units from `https://spacetime.silentmedia.com/units` once a day.
-- **Leaderboard**: protocol and client are implemented, but the feature is disabled until the server launches. See [`docs/protocol.md`](docs/protocol.md).
+- **Leaderboard** (opt-in): If you want to brag about your usage to other addicts, you can.
 
 ## Building (macOS 14+)
 
