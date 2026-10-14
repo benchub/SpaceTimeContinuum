@@ -2,8 +2,8 @@ import Foundation
 
 /// Feature switches for functionality that exists in code but isn't offered to users yet.
 public enum Features {
-    /// The leaderboard server isn't live yet: the checkbox, name check and sync stay disabled.
-    public static var leaderboardAvailable = false
+    /// The leaderboard server is live; joining is still opt-in (`AppSettings.leaderboardEnabled` defaults to false).
+    public static var leaderboardAvailable = true
 }
 
 /// User preferences and identity, persisted as JSON in the `settings` table.

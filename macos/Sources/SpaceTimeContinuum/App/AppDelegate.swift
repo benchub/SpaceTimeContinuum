@@ -23,8 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "infinity.circle", accessibilityDescription: "Space Time Continuum")
-            button.image?.isTemplate = true
+            button.title = "🍵"
+            button.setAccessibilityLabel("Space Time Continuum")
             button.toolTip = "Space Time Continuum"
         }
         let menu = NSMenu()
@@ -54,18 +54,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        menu.addItem(.sectionHeader(title: "Today"))
+        menu.addItem(.sectionHeader(title: "Time Today"))
         menu.addItem(info(
             "⌨️  Keyboard: \(model.silly(Double(snap.today.keyActiveSeconds), .time))",
             tip: "\(RealUnits.duration(Double(snap.today.keyActiveSeconds))) of typing, \(snap.today.keyPresses) key presses"
         ))
+        menu.addItem(screenOnLine(active: snap.today.keyActiveSeconds, screenOn: snap.today.screenOnSeconds))
         menu.addItem(info(
             "🖱️  Mouse: \(model.silly(Double(snap.today.pointerActiveSeconds), .time))",
             tip: "\(RealUnits.duration(Double(snap.today.pointerActiveSeconds))) of pointer movement"
         ))
+        menu.addItem(screenOnLine(active: snap.today.pointerActiveSeconds, screenOn: snap.today.screenOnSeconds))
 
         let since = snap.lifetime.trackingSince.map {
-            "Since " + Date(timeIntervalSince1970: TimeInterval($0)).formatted(date: .abbreviated, time: .omitted)
+            "Distance since " + Date(timeIntervalSince1970: TimeInterval($0)).formatted(date: .abbreviated, time: .omitted)
         } ?? "Distance travelled"
         menu.addItem(.sectionHeader(title: since))
         menu.addItem(info(
@@ -78,31 +80,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ))
 
         menu.addItem(.separator())
-        menu.addItem(item("Time Graphs…", action: #selector(showGraphs), key: "g"))
-        menu.addItem(item("Configuration…", action: #selector(showConfiguration), key: ","))
-        let leaderboard = NSMenuItem(title: "Leaderboard", action: nil, keyEquivalent: "")
-        leaderboard.isEnabled = false
-        leaderboard.toolTip = "Coming in a future version"
-        menu.addItem(leaderboard)
+        menu.addItem(item("Time Graphs…", action: #selector(showGraphs)))
+        menu.addItem(item("Configuration…", action: #selector(showConfiguration)))
+        menu.addItem(item("Leaderboard", action: #selector(openLeaderboard)))
         menu.addItem(.separator())
-        menu.addItem(item("Stop Recording & Quit", action: #selector(quit), key: "q"))
+        menu.addItem(item("Stop Recording & Quit", action: #selector(quit)))
     }
 
-    private func item(_ title: String, action: Selector, key: String = "") -> NSMenuItem {
-        let i = NSMenuItem(title: title, action: action, keyEquivalent: key)
+    private func item(_ title: String, action: Selector) -> NSMenuItem {
+        let i = NSMenuItem(title: title, action: action, keyEquivalent: "")
         i.target = self
         return i
     }
 
-    /// Informational line: enabled so it isn't greyed out, but does nothing.
-    private func info(_ title: String, tip: String) -> NSMenuItem {
-        let i = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        i.isEnabled = true
-        i.toolTip = tip
+    /// Informational line: a plain view, so it's unselectable but keeps normal text color.
+    private func info(_ title: String, tip: String? = nil, small: Bool = false, indent: CGFloat = 0) -> NSMenuItem {
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.menuFont(ofSize: small ? 11 : 0)
+        label.textColor = .labelColor
+        label.sizeToFit()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: label.frame.width + 36 + indent, height: label.frame.height + 4))
+        label.frame.origin = NSPoint(x: 14 + indent, y: 2)
+        container.addSubview(label)
+        container.toolTip = tip
+        let i = NSMenuItem()
+        i.view = container
         return i
     }
 
+    /// Secondary line showing active time as a share of screen-on time.
+    private func screenOnLine(active: Int, screenOn: Int) -> NSMenuItem {
+        let pct = screenOn > 0 ? Int((Double(min(active, screenOn)) / Double(screenOn) * 100).rounded()) : 0
+        return info("(\(pct)% of the time your computer screen was on)", small: true, indent: 22)
+    }
+
     // MARK: Actions
+
+    @objc private func openLeaderboard() {
+        if let url = URL(string: "https://spacetime.silentmedia.com/") { NSWorkspace.shared.open(url) }
+    }
 
     @objc private func openPermissions() {
         model.requestInputPermission()

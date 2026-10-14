@@ -70,4 +70,4 @@ Overlays can show the previous period, or averages over past days that have data
 
 ## Leaderboard
 
-Implemented end to end but switched off via `Features.leaderboardAvailable`. `SyncService` uploads unsynced minute rows every 5 min ± 30 s while unlocked. `NameAvailabilityChecker` debounces name checks to at most one per second. See [`protocol.md`](protocol.md).
+Enabled via `Features.leaderboardAvailable`; joining is opt-in (`leaderboardEnabled` defaults to false). `SyncService` uploads unsynced minute rows every 5 min ± 30 s while unlocked. `NameAvailabilityChecker` debounces name checks to at most one per second. See [`protocol.md`](protocol.md).

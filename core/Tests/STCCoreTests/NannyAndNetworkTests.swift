@@ -123,8 +123,9 @@ final class LeaderboardClientTests: XCTestCase {
 
     @MainActor
     func testSyncMarksAcceptedAndRejected() async throws {
+        let previous = Features.leaderboardAvailable
         Features.leaderboardAvailable = true
-        defer { Features.leaderboardAvailable = false }
+        defer { Features.leaderboardAvailable = previous }
         let store = try ActivityStore(path: ":memory:")
         for i in 0..<3 { try store.record(MinuteRollup(minuteStart: Int64(1_760_000_040 + i * 60), activity: .zero)) }
         let c = client { _ in (200, [:], #"{"accepted":[1760000040,1760000100],"rejected":[{"minute_start":1760000160,"reason":"x"}]}"#) }

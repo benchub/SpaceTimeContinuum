@@ -103,7 +103,7 @@ struct ConfigurationView: View {
             .help(leaderboardTip)
 
             HStack {
-                TextField("Leaderboard name", text: $leaderboardName)
+                TextField("Leaderboard name", text: $leaderboardName, prompt: Text("Enter a name here to join"))
                     .disabled(!available)
                     .onChange(of: leaderboardName) { _, new in model.leaderboardNameEdited(new) }
                 Button("Set name") { model.claimLeaderboardName(leaderboardName) }
@@ -116,6 +116,10 @@ struct ConfigurationView: View {
         } footer: {
             if !available {
                 Text("The leaderboard is coming in a future version.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if model.settings.leaderboardName.isEmpty {
+                Text("To join, enter a name, click “Set name”, then turn on the checkbox.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
