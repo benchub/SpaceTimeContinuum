@@ -81,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(item("Time Graphs…", action: #selector(showGraphs)))
+        menu.addItem(item("Conversion Tool…", action: #selector(showConversionTool)))
         menu.addItem(item("Configuration…", action: #selector(showConfiguration)))
         menu.addItem(item("Leaderboard", action: #selector(openLeaderboard)))
         menu.addItem(.separator())
@@ -126,7 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func showConfiguration() {
-        show(id: "config", title: "Space Time Continuum — Configuration", size: NSSize(width: 560, height: 720)) {
+        show(id: "config", title: "Space Time Continuum \(AppModel.appVersion) Configuration", size: NSSize(width: 560, height: 720)) {
             ConfigurationView(model: self.model) { [weak self] in self?.windows["config"]?.close() }
         }
     }
@@ -134,6 +135,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showGraphs() {
         show(id: "graphs", title: "Space Time Continuum — Time Graphs", size: NSSize(width: 980, height: 680)) {
             TimeGraphsView(model: self.model)
+        }
+    }
+
+    @objc private func showConversionTool() {
+        show(id: "convert", title: "Space Time Continuum — Conversion Tool", size: NSSize(width: 480, height: 240)) {
+            ConversionToolView(model: self.model)
         }
     }
 

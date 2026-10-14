@@ -2,9 +2,24 @@ import Charts
 import STCCore
 import SwiftUI
 
-enum DeviceFilter: String, CaseIterable, Identifiable {
-    case both = "Both", keyboard = "Keyboard", pointer = "Mouse"
+enum SeriesKind: String, CaseIterable, Identifiable {
+    case keyboard = "Keyboard", pointer = "Mouse", unlocked = "Unlocked", screenOn = "Screen On"
     var id: String { rawValue }
+
+    var color: Color {
+        switch self {
+        case .keyboard: .blue
+        case .pointer: .orange
+        case .unlocked: .green
+        case .screenOn: .purple
+        }
+    }
+
+    var borderColor: Color {
+        let c = NSColor(color).usingColorSpace(.deviceRGB) ?? .gray
+        return Color(hue: c.hueComponent, saturation: min(1, c.saturationComponent * 1.4),
+                     brightness: c.brightnessComponent * 0.75)
+    }
 }
 
 private enum Metric {
@@ -15,10 +30,16 @@ private enum Metric {
     var kind: MeasureKind { self == .time ? .time : .space }
 
     /// Raw value in seconds or meters.
-    func value(_ v: BinValues, keyboard: Bool) -> Double {
-        switch self {
-        case .time: keyboard ? v.keyActiveSeconds : v.pointerActiveSeconds
-        case .distance: keyboard ? v.keyDistanceMeters : v.pointerDistanceMeters
+    /// nil when the series has no value for this metric (unlocked / screen-on are time only).
+    func value(_ v: BinValues, _ kind: SeriesKind) -> Double? {
+        switch (self, kind) {
+        case (.time, .keyboard): v.keyActiveSeconds
+        case (.time, .pointer): v.pointerActiveSeconds
+        case (.time, .unlocked): v.unlockedSeconds
+        case (.time, .screenOn): v.screenOnSeconds
+        case (.distance, .keyboard): v.keyDistanceMeters
+        case (.distance, .pointer): v.pointerDistanceMeters
+        default: nil
         }
     }
 
@@ -41,7 +62,7 @@ struct TimeGraphsView: View {
     @ObservedObject var model: AppModel
 
     @State private var period: GraphPeriod = .today
-    @State private var devices: DeviceFilter = .both
+    @State private var shown: Set<SeriesKind> = [.keyboard, .pointer]
     @State private var pinned: GraphOverlay?
     @State private var hovered: GraphOverlay?
     @State private var current: GraphSeries?
@@ -59,11 +80,21 @@ struct TimeGraphsView: View {
                 .labelsHidden()
                 .frame(maxWidth: 320)
                 Spacer()
-                Picker("Show", selection: $devices) {
-                    ForEach(DeviceFilter.allCases) { Text($0.rawValue).tag($0) }
+                Text("Show:").foregroundStyle(.secondary)
+                ForEach(SeriesKind.allCases) { kind in
+                    Toggle(kind.rawValue, isOn: Binding(
+                        get: { shown.contains(kind) },
+                        set: { on in if on { shown.insert(kind) } else { shown.remove(kind) } }
+                    ))
+                    .toggleStyle(.button)
+                    .tint(kind.color)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(kind.borderColor, lineWidth: 2)
+                            .opacity(shown.contains(kind) ? 1 : 0)
+                            .allowsHitTesting(false)
+                    )
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 280)
             }
 
             HStack(alignment: .top, spacing: 16) {
@@ -141,11 +172,9 @@ struct TimeGraphsView: View {
         var out: [Point] = []
         for bin in series.bins {
             guard let v = bin.values else { continue }
-            if devices != .pointer {
-                out.append(Point(date: bin.start, value: metric.plotted(metric.value(v, keyboard: true)), series: "Keyboard" + suffix))
-            }
-            if devices != .keyboard {
-                out.append(Point(date: bin.start, value: metric.plotted(metric.value(v, keyboard: false)), series: "Mouse" + suffix))
+            for kind in SeriesKind.allCases where shown.contains(kind) {
+                guard let raw = metric.value(v, kind) else { continue }
+                out.append(Point(date: bin.start, value: metric.plotted(raw), series: kind.rawValue + suffix))
             }
         }
         return out
@@ -176,7 +205,7 @@ struct TimeGraphsView: View {
                 period: period,
                 current: current,
                 overlay: overlaySeries,
-                devices: devices,
+                shown: shown,
                 model: model
             )
             .frame(minHeight: 200)
@@ -186,9 +215,11 @@ struct TimeGraphsView: View {
     private func summary(_ metric: Metric) -> String {
         guard let bins = current?.bins else { return "" }
         let vals = bins.compactMap(\.values)
-        let k = vals.reduce(0) { $0 + metric.value($1, keyboard: true) }
-        let p = vals.reduce(0) { $0 + metric.value($1, keyboard: false) }
-        return "Keyboard \(metric.real(k)) · Mouse \(metric.real(p))"
+        return SeriesKind.allCases.compactMap { kind -> String? in
+            guard shown.contains(kind), vals.first.flatMap({ metric.value($0, kind) }) != nil else { return nil }
+            let total = vals.reduce(0) { $0 + (metric.value($1, kind) ?? 0) }
+            return "\(kind.rawValue) \(metric.real(total))"
+        }.joined(separator: " · ")
     }
 }
 
@@ -200,16 +231,13 @@ private struct GraphChart: View {
     let period: GraphPeriod
     let current: GraphSeries?
     let overlay: GraphSeries?
-    let devices: DeviceFilter
+    let shown: Set<SeriesKind>
     let model: AppModel
 
     @State private var selection: Date?
 
-    private static let keyboardColor = Color.blue
-    private static let mouseColor = Color.orange
-
     private func color(_ series: String) -> Color {
-        series.hasPrefix("Keyboard") ? Self.keyboardColor : Self.mouseColor
+        SeriesKind.allCases.first { series.hasPrefix($0.rawValue) }?.color ?? .gray
     }
 
     private var selectedBin: GraphBin? {
@@ -273,15 +301,19 @@ private struct GraphChart: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(rangeText(bin)).font(.caption.bold())
             if let v = bin.values {
-                if devices != .pointer { line("Keyboard", metric.value(v, keyboard: true), salt: 1, bin: bin) }
-                if devices != .keyboard { line("Mouse", metric.value(v, keyboard: false), salt: 2, bin: bin) }
+                ForEach(Array(SeriesKind.allCases.enumerated()), id: \.offset) { i, kind in
+                    if shown.contains(kind), let raw = metric.value(v, kind) { line(kind.rawValue, raw, salt: i + 1, bin: bin) }
+                }
             } else {
                 Text("The future is unwritten").font(.caption).foregroundStyle(.secondary)
             }
             if let ov = overlayBin?.values {
                 Divider()
-                if devices != .pointer { Text("Compare keyboard: \(metric.real(metric.value(ov, keyboard: true)))").font(.caption2).foregroundStyle(.secondary) }
-                if devices != .keyboard { Text("Compare mouse: \(metric.real(metric.value(ov, keyboard: false)))").font(.caption2).foregroundStyle(.secondary) }
+                ForEach(SeriesKind.allCases) { kind in
+                    if shown.contains(kind), let raw = metric.value(ov, kind) {
+                        Text("Compare \(kind.rawValue.lowercased()): \(metric.real(raw))").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .padding(8)

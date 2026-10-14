@@ -48,6 +48,8 @@ public struct BinValues: Equatable, Sendable {
     public var keyActiveSeconds: Double = 0
     public var pointerActiveSeconds: Double = 0
     public var anyActiveSeconds: Double = 0
+    public var unlockedSeconds: Double = 0
+    public var screenOnSeconds: Double = 0
     public var keyDistanceMeters: Double = 0
     public var pointerDistanceMeters: Double = 0
 
@@ -57,6 +59,8 @@ public struct BinValues: Equatable, Sendable {
         keyActiveSeconds = Double(a.keyActiveSeconds) / d
         pointerActiveSeconds = Double(a.pointerActiveSeconds) / d
         anyActiveSeconds = Double(a.anyActiveSeconds) / d
+        unlockedSeconds = Double(a.unlockedSeconds) / d
+        screenOnSeconds = Double(a.screenOnSeconds) / d
         keyDistanceMeters = a.keyDistanceMeters / d
         pointerDistanceMeters = a.pointerDistanceMeters / d
     }
