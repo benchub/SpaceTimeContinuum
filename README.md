@@ -1,6 +1,16 @@
 # Space Time Continuum
 
-A menu bar app that measures how much **time** you spend using your keyboard and pointer, and how much **space** they cover. The results are reported in units of questionable scientific value: "about 3.5 flights from Amsterdam to Lisbon", "about the width of 400 pennies".
+One day my physical therapist asked me how much time I spend on my mouse vs. my keyboard. I didn't know, but I knew I could make an app that could tell me. Then a fever dream turned that simple idea into Space Time Continuum.
+
+**Behold!** It is now easy to:
+
+* Keep track of how much time you are using your keyboard vs your mouse/trackball/whatever.
+* Keep track of how your recent activity compares with past activity.
+* Get nanny reminders when it's time to go enjoy life for a few minutes away from your computer.
+* Easily measure the distance this things have moved over time, in whatever silly unit makes the most sense to the Space Time Continuum algorithm.
+* Join a leaderboard of dubious distinction.
+
+Space Time Continuum sits in your menu bar and tracks how much you use your input devices. Of course it does not track what you are actually typing or pointing at, just how often you smash your keys or wave your pointer around.
 
 macOS is supported today. The code is laid out so Linux and Windows front ends can share the same core.
 
@@ -37,7 +47,11 @@ open "build/Space Time Continuum.app"
 On first launch, grant **Input Monitoring** permission (System Settings → Privacy & Security → Input Monitoring), then relaunch if prompted.
 
 > macOS ties that permission to the app's code signature. Ad-hoc builds (the default) may need permission re-granted after each rebuild. To avoid that, sign with a stable identity:
-> `SIGN_IDENTITY="Apple Development: …" scripts/build-app.sh`
+> 1. Open up Keychain Access
+> 2. Go to Keychain Access -> Certificate Assistant -> Create a Certificate...
+> 3. Make a Code Signing certificate with a self-signed root. Call it whatever you want.
+> 4. Assuming you called your certificate "Space Time Continuum", build it like:
+> `SIGN_IDENTITY="Space Time Continuum" scripts/build-app.sh`
 
 For quick iteration you can also run `swift run` from `macos/`. The permission then attaches to your terminal app. Set `STC_DATA_DIR=/some/dir` to use a throwaway database instead of the real one.
 
