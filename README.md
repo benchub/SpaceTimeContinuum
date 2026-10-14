@@ -6,13 +6,13 @@ One day my physical therapist asked me how much time I spend on my mouse vs. my 
 
 * Keep track of how much time you are using your keyboard vs your mouse/trackball/whatever.
 * Keep track of how your recent activity compares with past activity.
-* Get nanny reminders when it's time to go enjoy life for a few minutes away from your computer.
-* Easily measure the distance this things have moved over time, in whatever silly unit makes the most sense to the Space Time Continuum algorithm.
+* Get nanny reminders when it's time to go enjoy life for a few minutes away from your computer (if you want).
+* Easily measure the distance things have moved over time, in whatever silly unit makes the most sense to Space Time Continuum's algorithm.
 * Join a leaderboard of dubious distinction.
 
 Space Time Continuum sits in your menu bar and tracks how much you use your input devices. Of course it does not track what you are actually typing or pointing at, just how often you smash your keys or wave your pointer around.
 
-macOS is supported today. The code is laid out so Linux and Windows front ends can share the same core.
+macOS is supported today. The code is laid out so Linux and Windows front ends can share the same core. Pull requests welcome.
 
 ## What it measures
 
