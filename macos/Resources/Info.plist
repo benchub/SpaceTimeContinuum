@@ -8,6 +8,8 @@
 	<string>Space Time Continuum</string>
 	<key>CFBundleExecutable</key>
 	<string>SpaceTimeContinuum</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.silentmedia.SpaceTimeContinuum</string>
 	<key>CFBundleInfoDictionaryVersion</key>

@@ -2,6 +2,9 @@
 
 One day my physical therapist asked me how much time I spend on my mouse vs. my keyboard. I didn't know, but I knew I could make an app that could tell me. Then a fever dream turned that simple idea into Space Time Continuum.
 
+![Absurd Logo Here](shared/icon.jpg)
+
+
 **Behold!** It is now easy to:
 
 * Keep track of how much time you are using your keyboard vs your mouse.
