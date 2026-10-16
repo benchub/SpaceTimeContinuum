@@ -1,5 +1,8 @@
 import AppKit
 
+// AppKit's default tooltip delay is slow; value is in milliseconds.
+UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 500])
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()

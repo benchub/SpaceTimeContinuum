@@ -76,6 +76,80 @@ public final class SyncService {
     }
 }
 
+/// Extra "time for a stretch" reminders, downloaded from `/quips` (New Entropy).
+public struct QuipCatalog: Equatable, Sendable {
+    public var stretch: [String]
+
+    public static let maximumQuipLength = 200
+
+    public init(stretch: [String]) { self.stretch = stretch }
+
+    /// Parses `{"stretch": ["...", ...]}`. Invalid or duplicate entries are skipped; rejected
+    /// if no valid quips remain.
+    public init(data: Data) throws {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let raw = root["stretch"] as? [Any]
+        else { throw UnitCatalog.ValidationError.notJSON }
+        var seen = Set<String>()
+        let quips: [String] = raw.compactMap {
+            guard let q = ($0 as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !q.isEmpty, q.count <= Self.maximumQuipLength,
+                  seen.insert(q.lowercased()).inserted else { return nil }
+            return q
+        }
+        guard !quips.isEmpty else { throw UnitCatalog.ValidationError.tooFewEntries(kind: "stretch", count: 0) }
+        self.stretch = quips
+    }
+}
+
+/// Downloads quips from `/quips` and caches them on disk, like `UnitsUpdater`.
+public struct QuipsUpdater: Sendable {
+    public let client: LeaderboardClient
+    public let cacheURL: URL
+
+    public init(client: LeaderboardClient, cacheURL: URL) {
+        self.client = client
+        self.cacheURL = cacheURL
+    }
+
+    public enum Outcome: Equatable, Sendable {
+        case notModified
+        case updated(etag: String?)
+        case invalid
+        case failed(String)
+    }
+
+    public func isDue(lastChecked: Date?, now: Date = Date()) -> Bool {
+        guard let lastChecked else { return true }
+        return now.timeIntervalSince(lastChecked) >= UnitsUpdater.checkInterval
+    }
+
+    public func loadCached() -> QuipCatalog? {
+        guard let data = try? Data(contentsOf: cacheURL) else { return nil }
+        return try? QuipCatalog(data: data)
+    }
+
+    public func clearCache() {
+        try? FileManager.default.removeItem(at: cacheURL)
+    }
+
+    public func fetch(etag: String?) async -> Outcome {
+        do {
+            switch try await client.fetchQuips(etag: loadCached() == nil ? nil : etag) {
+            case .notModified:
+                return .notModified
+            case .updated(let data, let newETag):
+                guard (try? QuipCatalog(data: data)) != nil else { return .invalid }
+                try? FileManager.default.createDirectory(at: cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try data.write(to: cacheURL, options: .atomic)
+                return .updated(etag: newETag)
+            }
+        } catch {
+            return .failed(String(describing: error))
+        }
+    }
+}
+
 /// Downloads silly units from `/units` (New Entropy) and caches them on disk.
 public struct UnitsUpdater: Sendable {
     public static let checkInterval: TimeInterval = 86400

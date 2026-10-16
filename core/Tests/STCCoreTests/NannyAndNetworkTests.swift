@@ -90,6 +90,23 @@ final class LeaderboardClientTests: XCTestCase {
         }
     }
 
+    func testQuipRotationUsesWholePoolBeforeRepeating() {
+        var r = QuipRotation()
+        let pool = ["a", "b", "c", "d"]
+        for _ in 0..<5 {
+            let round = (0..<4).compactMap { _ in r.next(from: pool) }
+            XCTAssertEqual(Set(round), Set(pool))
+        }
+        XCTAssertNil(r.next(from: []))
+    }
+
+    func testQuipCatalogParsing() throws {
+        let json = "{\"stretch\": [\" Reach up. \", \"reach UP.\", \"\", 5, \"Shrug.\"]}"
+        XCTAssertEqual(try QuipCatalog(data: Data(json.utf8)).stretch, ["Reach up.", "Shrug."])
+        XCTAssertThrowsError(try QuipCatalog(data: Data("{\"stretch\": []}".utf8)))
+        XCTAssertThrowsError(try QuipCatalog(data: Data("nope".utf8)))
+    }
+
     func testNameRules() {
         XCTAssertTrue(LeaderboardName.isValid("Space Cadet"))
         XCTAssertTrue(LeaderboardName.isValid("abc"))
@@ -97,7 +114,8 @@ final class LeaderboardClientTests: XCTestCase {
         XCTAssertFalse(LeaderboardName.isValid(" abc"))
         XCTAssertFalse(LeaderboardName.isValid("abc-"))
         XCTAssertFalse(LeaderboardName.isValid("emoji🚀ok"))
-        XCTAssertFalse(LeaderboardName.isValid(String(repeating: "a", count: 25)))
+        XCTAssertTrue(LeaderboardName.isValid(String(repeating: "a", count: 50)))
+        XCTAssertFalse(LeaderboardName.isValid(String(repeating: "a", count: 51)))
     }
 
     @MainActor

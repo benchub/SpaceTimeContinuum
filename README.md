@@ -36,7 +36,7 @@ The database is `~/Library/Application Support/SpaceTimeContinuum/spacetime.sqli
 - **Time Graphs**: Today, This week or This month, compared against yesterday, last week, last month, or a typical weekday, weekend or period.
 - **Nanny Mode** (opt-in): suggests healthy breaks when you've been at it too long. "Too long" is configurable.
 - **Mistress Mode** (opt-in): enforces breaks to keep your RSI from acting up. Enforcement is configurable and optionally lets you break out with a safe word.
-- **New Entropy**: downloads fresh silly units from `https://spacetime.silentmedia.com/units` once a day.
+- **New Entropy**: downloads fresh silly units from `https://spacetime.silentmedia.com/units` once a day, plus extra stretch reminders from `.../quips`.
 - **Leaderboard** (opt-in): If you want to brag about your usage to other addicts, Space Time Continuum will do it for you can.
 
 ## Building (macOS 14+)
@@ -68,7 +68,7 @@ core/      Cross-platform Swift package (STCCore): aggregation, SQLite storage,
 macos/     macOS menu bar app (AppKit + SwiftUI), built with SwiftPM.
 linux/     Placeholder for a future Linux front end.
 windows/   Placeholder for a future Windows front end.
-shared/    Data shared by all platforms: units.json, keyboards.json.
+shared/    Data shared by all platforms: units.json, quips.json, keyboards.json.
 docs/      Protocol spec, units format, architecture notes.
 ```
 

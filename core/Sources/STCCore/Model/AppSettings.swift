@@ -28,6 +28,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var launchAtLogin: Bool = true
     public var unitsETag: String?
     public var unitsLastChecked: Date?
+    public var quipsETag: String?
+    public var quipsLastChecked: Date?
     public var lastNagAt: Date?
 
     public init(deviceGUID: String = UUID().uuidString.lowercased(), deviceToken: String = AppSettings.makeToken()) {
@@ -53,6 +55,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         launchAtLogin = try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? launchAtLogin
         unitsETag = try c.decodeIfPresent(String.self, forKey: .unitsETag)
         unitsLastChecked = try c.decodeIfPresent(Date.self, forKey: .unitsLastChecked)
+        quipsETag = try c.decodeIfPresent(String.self, forKey: .quipsETag)
+        quipsLastChecked = try c.decodeIfPresent(Date.self, forKey: .quipsLastChecked)
         lastNagAt = try c.decodeIfPresent(Date.self, forKey: .lastNagAt)
     }
 

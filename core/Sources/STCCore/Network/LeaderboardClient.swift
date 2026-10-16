@@ -130,7 +130,15 @@ public struct LeaderboardClient: Sendable {
     }
 
     public func fetchUnits(etag: String?) async throws -> UnitsFetch {
-        var req = request("units", method: "GET")
+        try await fetchList("units", etag: etag)
+    }
+
+    public func fetchQuips(etag: String?) async throws -> UnitsFetch {
+        try await fetchList("quips", etag: etag)
+    }
+
+    private func fetchList(_ path: String, etag: String?) async throws -> UnitsFetch {
+        var req = request(path, method: "GET")
         if let etag { req.setValue(etag, forHTTPHeaderField: "If-None-Match") }
         let (data, response) = try await transport.send(req)
         switch response.statusCode {
@@ -175,7 +183,9 @@ public enum LeaderboardName {
         raw.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    public static let maxLength = 50
+
     public static func isValid(_ name: String) -> Bool {
-        name.range(of: #"^[A-Za-z0-9](?:[A-Za-z0-9 _.\-]{1,22})[A-Za-z0-9]$"#, options: .regularExpression) != nil
+        name.range(of: #"^[A-Za-z0-9](?:[A-Za-z0-9 _.\-]{1,48})[A-Za-z0-9]$"#, options: .regularExpression) != nil
     }
 }

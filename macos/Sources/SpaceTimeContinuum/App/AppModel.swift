@@ -35,10 +35,13 @@ final class AppModel: ObservableObject {
     private var blockedDevices: Set<InputDevice> = []
     private var lockouts = LockoutScheduler()
     private var stretch = StretchTracker()
+    private var quipRotation = QuipRotation()
+    private var downloadedStretchQuips: [String] = []
     private let blocker = MacInputBlocker()
     private let overlay = EnforcementOverlay()
     private let client: LeaderboardClient
     private let unitsUpdater: UnitsUpdater
+    private let quipsUpdater: QuipsUpdater
     private let sync: SyncService
     private let nameChecker: NameAvailabilityChecker
     private var travelMetersByKeyboard: [String: Double] = [:]
@@ -64,6 +67,7 @@ final class AppModel: ObservableObject {
         let os = ProcessInfo.processInfo.operatingSystemVersion
         client = LeaderboardClient(userAgent: "SpaceTimeContinuum/\(Self.appVersion) (macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion))")
         unitsUpdater = UnitsUpdater(client: client, cacheURL: support.appendingPathComponent("units-cache.json"))
+        quipsUpdater = QuipsUpdater(client: client, cacheURL: support.appendingPathComponent("quips-cache.json"))
         formatter = SillyFormatter(catalog: bundledUnits)
         recorder = Recorder(session: session)
 
@@ -176,7 +180,9 @@ final class AppModel: ObservableObject {
     }
 
     private func backgroundChores() {
-        guard settings.newEntropyEnabled, unitsUpdater.isDue(lastChecked: settings.unitsLastChecked) else { return }
+        guard settings.newEntropyEnabled else { return }
+        refreshQuips()
+        guard unitsUpdater.isDue(lastChecked: settings.unitsLastChecked) else { return }
         Task {
             let outcome = await unitsUpdater.fetch(etag: settings.unitsETag)
             switch outcome {
@@ -191,9 +197,25 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func refreshQuips() {
+        guard quipsUpdater.isDue(lastChecked: settings.quipsLastChecked) else { return }
+        Task {
+            switch await quipsUpdater.fetch(etag: settings.quipsETag) {
+            case .updated(let etag):
+                updateSettings { $0.quipsETag = etag; $0.quipsLastChecked = Date() }
+                applyUnitsCatalog()
+            case .notModified, .invalid:
+                updateSettings { $0.quipsLastChecked = Date() }
+            case .failed(let message):
+                NSLog("New Entropy quips fetch failed: \(message)")
+            }
+        }
+    }
+
     private func applyUnitsCatalog() {
         let catalog = settings.newEntropyEnabled ? (unitsUpdater.loadCached() ?? bundledUnits) : bundledUnits
         formatter = SillyFormatter(catalog: catalog)
+        downloadedStretchQuips = settings.newEntropyEnabled ? (quipsUpdater.loadCached()?.stretch ?? []) : []
     }
 
     private func checkNanny() {
@@ -215,7 +237,8 @@ final class AppModel: ObservableObject {
     private func checkStretch(_ rollup: MinuteRollup) {
         guard settings.nannyEnabled, settings.nannyRules.stretchEnabled else { stretch.reset(); return }
         if stretch.add(screenOnSeconds: rollup.activity.screenOnSeconds, everyMinutes: settings.nannyRules.stretchEveryMinutes) {
-            let message = Nanny.stretchMessage()
+            let pool = Nanny.stretchSuggestions + downloadedStretchQuips
+            let message = Nanny.stretchMessage(body: quipRotation.next(from: pool))
             notifier.notify(title: message.title, body: message.body)
         }
     }
@@ -385,7 +408,7 @@ final class AppModel: ObservableObject {
     func setNewEntropy(_ enabled: Bool) {
         updateSettings {
             $0.newEntropyEnabled = enabled
-            if enabled { $0.unitsLastChecked = nil }
+            if enabled { $0.unitsLastChecked = nil; $0.quipsLastChecked = nil }
         }
         applyUnitsCatalog()
         if enabled { backgroundChores() }

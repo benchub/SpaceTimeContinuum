@@ -15,7 +15,7 @@ module Api
     # POST /name/:guid/:name
     def create
       name = leaderboard_name
-      fail!(:bad_request, "invalid name: 3-24 letters, digits, spaces, _ - . starting and ending with a letter or digit") unless Device.valid_name?(name)
+      fail!(:bad_request, "invalid name: 3-50 letters, digits, spaces, _ - . starting and ending with a letter or digit") unless Device.valid_name?(name)
 
       available, _reason = Device.name_availability(name, device: @device)
       return render_unavailable(name) unless available

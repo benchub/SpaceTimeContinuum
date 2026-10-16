@@ -145,7 +145,7 @@ Response `200`:
 `reason` is one of `taken`, `invalid`, `reserved`. A name already owned by `:guid` is
 reported `available: true`.
 
-**Name rules:** 3–24 characters; letters, digits, space, `_`, `-`, `.`; must start and
+**Name rules:** 3–50 characters; letters, digits, space, `_`, `-`, `.`; must start and
 end with a letter or digit; uniqueness is case-insensitive. Leading/trailing whitespace
 is trimmed by the client before sending.
 
@@ -165,6 +165,14 @@ No authentication. Supports `ETag`/`If-None-Match` (`304 Not Modified`). The cli
 checks at most once per day when New Entropy is enabled. Format: see
 [units-format.md](units-format.md). A response that fails validation is ignored and the
 client keeps its current list.
+
+### `GET /quips` — New Entropy stretch reminders
+
+No authentication. Same caching behaviour as `/units`. Body:
+`{"stretch": ["Stand up and reach for the ceiling.", ...]}`. Quips are trimmed, at most 200
+characters, and duplicates are ignored; a response with no valid quips is ignored. The
+app mixes them in with its built-in stretch reminders and shows each one before repeating
+any. Source: [`shared/quips.json`](../shared/quips.json).
 
 ## Server-side presentation (informational)
 

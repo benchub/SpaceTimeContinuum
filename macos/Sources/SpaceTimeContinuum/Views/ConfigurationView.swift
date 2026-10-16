@@ -204,7 +204,13 @@ struct ConfigurationView: View {
             HStack {
                 TextField("Leaderboard name", text: $leaderboardName, prompt: Text("Enter a name here to join"))
                     .disabled(!available)
-                    .onChange(of: leaderboardName) { _, new in model.leaderboardNameEdited(new) }
+                    .onChange(of: leaderboardName) { _, new in
+                        if new.count > LeaderboardName.maxLength {
+                            leaderboardName = String(new.prefix(LeaderboardName.maxLength))
+                            return
+                        }
+                        model.leaderboardNameEdited(new)
+                    }
                 Button("Set name") { model.claimLeaderboardName(leaderboardName) }
                     .disabled(!available || model.nameState != .available
                         || LeaderboardName.normalize(leaderboardName) == model.settings.leaderboardName)

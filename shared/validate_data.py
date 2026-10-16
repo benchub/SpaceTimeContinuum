@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate shared/units.json and shared/keyboards.json.
+"""Validate shared/units.json, shared/quips.json and shared/keyboards.json.
 
 Usage: python3 shared/validate_data.py [--show-plurals]
 """
@@ -11,6 +11,10 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 UNITS_PATH = os.path.join(HERE, "units.json")
 KEYBOARDS_PATH = os.path.join(HERE, "keyboards.json")
+QUIPS_PATH = os.path.join(HERE, "quips.json")
+
+MIN_QUIPS = 30
+MAX_QUIP = 200
 
 MIN_UNITS = 300
 MAX_LABEL = 60
@@ -111,6 +115,29 @@ def check_units(errors, show_plurals):
               f"({n + 1} test points): {'OK' if not gaps else f'{len(gaps)} gaps'}")
 
 
+def check_quips(errors):
+    with open(QUIPS_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    quips = data.get("stretch") if isinstance(data, dict) else None
+    if not isinstance(quips, list):
+        errors.append("quips.json: must be an object with a 'stretch' list")
+        return
+    if len(quips) < MIN_QUIPS:
+        errors.append(f"quips.json: {len(quips)} stretch quips, need >= {MIN_QUIPS}")
+    seen = set()
+    for i, q in enumerate(quips):
+        where = f"quips.json stretch[{i}]"
+        if not isinstance(q, str) or not q.strip() or q != q.strip():
+            errors.append(f"{where}: must be a non-empty trimmed string")
+            continue
+        if len(q) > MAX_QUIP:
+            errors.append(f"{where}: longer than {MAX_QUIP} chars")
+        if q.lower() in seen:
+            errors.append(f"{where}: duplicate {q!r}")
+        seen.add(q.lower())
+    print(f"quips.json: {len(quips)} stretch quips")
+
+
 def check_keyboards(errors):
     with open(KEYBOARDS_PATH, encoding="utf-8") as f:
         data = json.load(f)
@@ -178,6 +205,7 @@ def check_keyboards(errors):
 def main():
     errors = []
     check_units(errors, "--show-plurals" in sys.argv)
+    check_quips(errors)
     check_keyboards(errors)
     if errors:
         for e in errors:

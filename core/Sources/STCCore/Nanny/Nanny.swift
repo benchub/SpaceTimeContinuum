@@ -104,8 +104,30 @@ public struct Nanny: Sendable {
         return (title, suggestions.randomElement()!)
     }
 
-    public static func stretchMessage() -> (title: String, body: String) {
-        ("Time for a stretch", stretchSuggestions.randomElement()!)
+    /// - Parameter body: the quip to show, normally from `QuipRotation.next`.
+    public static func stretchMessage(body: String? = nil) -> (title: String, body: String) {
+        ("Time for a stretch", body ?? stretchSuggestions.randomElement()!)
+    }
+}
+
+/// Picks quips at random without repeating any until the whole pool has been used.
+public struct QuipRotation: Sendable {
+    private var used = Set<String>()
+    private var last: String?
+
+    public init() {}
+
+    public mutating func next(from pool: [String]) -> String? {
+        guard !pool.isEmpty else { return nil }
+        var fresh = pool.filter { !used.contains($0) }
+        if fresh.isEmpty {
+            used = []
+            fresh = pool.count > 1 ? pool.filter { $0 != last } : pool
+        }
+        let pick = fresh.randomElement()!
+        used.insert(pick)
+        last = pick
+        return pick
     }
 }
 

@@ -4,6 +4,10 @@
 #   scripts/build-app.sh            # release build, ad-hoc signed
 #   SIGN_IDENTITY="Apple Development: you@example.com" scripts/build-app.sh
 #
+#   SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" NOTARY_PROFILE=stc-notary scripts/build-app.sh
+#                                   # also notarizes and staples (profile made via
+#                                   # `xcrun notarytool store-credentials`)
+#
 # macOS ties the Input Monitoring permission to the code signature. With ad-hoc
 # signing you'll need to re-grant permission after each rebuild; signing with a
 # stable identity avoids that.
@@ -34,5 +38,15 @@ done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$(dirname "$ICONSET")"
 
-codesign --force --sign "${SIGN_IDENTITY:--}" --options runtime --timestamp=none "$APP"
+# Notarization requires a secure timestamp.
+TS="--timestamp=none"; [[ -n "${NOTARY_PROFILE:-}" ]] && TS="--timestamp"
+codesign --force --sign "${SIGN_IDENTITY:--}" --options runtime $TS "$APP"
+
+if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+  ZIP="$(mktemp -d)/app.zip"
+  ditto -c -k --keepParent "$APP" "$ZIP"
+  xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple "$APP"
+  rm -rf "$(dirname "$ZIP")"
+fi
 echo "Built $APP"
