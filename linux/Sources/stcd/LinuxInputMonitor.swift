@@ -9,8 +9,12 @@ import STCCore
 /// Works the same under X11 and Wayland because it sits below both. Needs read access to the
 /// device nodes, which normally means being in the `input` group. Each device gets its own
 /// reader thread; callbacks are delivered on the main queue.
+///
+/// Mistress Mode blocks devices with `EVIOCGRAB`, which hands their events to us alone. We keep
+/// reading grabbed devices (so the safe word works), and the kernel drops the grab if we die.
 final class LinuxInputMonitor: InputMonitoring {
-    var onKeyPress: ((KeyboardDevice) -> Void)?
+    /// A key went down: which keyboard, and the evdev key code. Also fires for grabbed keyboards.
+    var onKeyPress: ((KeyboardDevice, Int) -> Void)?
     var onPointerMove: ((Double) -> Void)?
     var onKeyboardsChanged: (() -> Void)?
 
@@ -21,16 +25,26 @@ final class LinuxInputMonitor: InputMonitoring {
     private let lock = NSLock()
     private var open: [String: OpenDevice] = [:]
     private var rescanTimer: DispatchSourceTimer?
+    private var grabRetry: DispatchSourceTimer?
+
+    /// Devices to block. Grabs follow hot-plugged devices too. Main queue only.
+    var blockedDevices: Set<InputDevice> = [] {
+        didSet { applyGrabs() }
+    }
 
     private final class OpenDevice {
         let path: String
         let fd: Int32
         let keyboard: KeyboardDevice?
+        let isPointer: Bool
         let absScale: (x: Double, y: Double)?
-        init(path: String, fd: Int32, keyboard: KeyboardDevice?, absScale: (x: Double, y: Double)?) {
+        /// Main queue only.
+        var grabbed = false
+        init(path: String, fd: Int32, keyboard: KeyboardDevice?, isPointer: Bool, absScale: (x: Double, y: Double)?) {
             self.path = path
             self.fd = fd
             self.keyboard = keyboard
+            self.isPointer = isPointer
             self.absScale = absScale
         }
     }
@@ -71,6 +85,8 @@ final class LinuxInputMonitor: InputMonitoring {
     func stop() {
         rescanTimer?.cancel()
         rescanTimer = nil
+        grabRetry?.cancel()
+        grabRetry = nil
         lock.lock()
         let devices = open.values
         open.removeAll()
@@ -102,6 +118,46 @@ final class LinuxInputMonitor: InputMonitoring {
             thread.start()
         }
         if changed { onKeyboardsChanged?() }
+        if !blockedDevices.isEmpty { applyGrabs() }
+    }
+
+    // MARK: Blocking
+
+    private func applyGrabs() {
+        lock.lock()
+        let devices = Array(open.values)
+        lock.unlock()
+        var waiting = false
+        for d in devices {
+            let want = (d.keyboard != nil && blockedDevices.contains(.keyboard))
+                || (d.isPointer && blockedDevices.contains(.pointer))
+            guard want != d.grabbed else { continue }
+            // Grabbing while a key is held would leave the desktop seeing it held forever
+            // (auto-repeat runaway), so wait until every key on that device is up.
+            if want, d.keyboard != nil, anyKeyDown(d.fd) {
+                waiting = true
+                continue
+            }
+            if ioctl(d.fd, ioc(write: 0x90, size: 4), want ? 1 : 0) == 0 || !want {
+                d.grabbed = want
+            }
+        }
+        if waiting, grabRetry == nil {
+            let timer = DispatchSource.makeTimerSource(queue: .main)
+            timer.schedule(deadline: .now() + .milliseconds(100), repeating: .milliseconds(100))
+            timer.setEventHandler { [weak self] in self?.applyGrabs() }
+            timer.resume()
+            grabRetry = timer
+        } else if !waiting {
+            grabRetry?.cancel()
+            grabRetry = nil
+        }
+    }
+
+    private func anyKeyDown(_ fd: Int32) -> Bool {
+        var state = [UInt8](repeating: 0, count: KEY_MAX / 8 + 1)
+        guard ioctl(fd, ioc(read: 0x18, size: state.count), &state) >= 0 else { return false }
+        return state.contains { $0 != 0 }
     }
 
     /// Opens a device if it's a keyboard or pointer we care about.
@@ -131,7 +187,8 @@ final class LinuxInputMonitor: InputMonitoring {
             vendorID: Int(id.vendor), productID: Int(id.product), productName: name,
             isBuiltIn: id.bustype == BUS_I8042 || name.localizedCaseInsensitiveContains("internal")
         ) : nil
-        return OpenDevice(path: path, fd: fd, keyboard: keyboard, absScale: isAbsolute ? absScale(fd) : nil)
+        return OpenDevice(path: path, fd: fd, keyboard: keyboard, isPointer: isMouse || isAbsolute,
+                          absScale: isAbsolute ? absScale(fd) : nil)
     }
 
     /// Meters per absolute unit on each axis.
@@ -170,7 +227,7 @@ final class LinuxInputMonitor: InputMonitoring {
                 switch (Int(type), Int(code)) {
                 case (EV_KEY, let key):
                     if let keyboard = device.keyboard, value == 1, key > 0, key < BTN_MISC {
-                        DispatchQueue.main.async { [weak self] in self?.onKeyPress?(keyboard) }
+                        DispatchQueue.main.async { [weak self] in self?.onKeyPress?(keyboard, key) }
                     }
                     if key == BTN_TOUCH {
                         touching = value != 0
@@ -212,6 +269,10 @@ final class LinuxInputMonitor: InputMonitoring {
 
     private func ioc(read nr: UInt, size: Int) -> UInt {
         (2 << 30) | (UInt(size) << 16) | (UInt(UInt8(ascii: "E")) << 8) | nr
+    }
+
+    private func ioc(write nr: UInt, size: Int) -> UInt {
+        (1 << 30) | (UInt(size) << 16) | (UInt(UInt8(ascii: "E")) << 8) | nr
     }
 
     private func bits(_ fd: Int32, type: Int, count: Int) -> Set<Int> {

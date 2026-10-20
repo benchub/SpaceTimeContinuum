@@ -1,6 +1,6 @@
 # Linux front end (early)
 
-So far this is `stcd`, a headless recorder with a small command-line interface. It records to the same SQLite schema as the Mac app and sends Nanny break and stretch reminders as desktop notifications. There's no tray icon, graphs window, Mistress Mode, leaderboard or New Entropy yet.
+`stcd` records keyboard and pointer activity to the same SQLite schema as the Mac app. It shows a top-bar icon with today's numbers and the main toggles, sends Nanny break and stretch reminders as desktop notifications, enforces breaks in Mistress Mode, uploads to the leaderboard and fetches New Entropy. Detailed settings are command-line only for now, and there's no graphs or conversion window yet. Without a display (e.g. over SSH) it runs headless.
 
 ## Build
 
@@ -15,7 +15,7 @@ tar zxf swiftly-$(uname -m).tar.gz
 Open a new terminal (or `source` the file `init` names), check with `swift --version`, then:
 
 ```sh
-sudo apt install build-essential libsqlite3-dev libnotify-bin
+sudo apt install build-essential libsqlite3-dev libnotify-bin libgtk-3-dev libayatana-appindicator3-dev
 cd linux && swift build -c release --static-swift-stdlib
 ```
 
@@ -25,9 +25,9 @@ If linking fails with `cannot find crtbeginS.o` or `cannot find -lgcc`, Swift pi
 
 ## Run-time requirements
 
-- `libsqlite3-0`, `libcurl4` (Ubuntu installs both by default) and `libnotify-bin` for notifications
+- `libsqlite3-0`, `libcurl4` and `libgtk-3-0` (Ubuntu desktop installs these by default), `libayatana-appindicator3-1` for the top-bar icon, and `libnotify-bin` for notifications
 - Read access to `/dev/input` (see below)
-- `shared/units.json` and `shared/keyboards.json`, found via `$STC_SHARED_DIR`, `../share/spacetimecontinuum` next to the binary, `/usr/share/spacetimecontinuum`, or the source tree it was built from
+- `shared/units.json`, `shared/keyboards.json` and `shared/icon.jpg`, found via `$STC_SHARED_DIR`, `../share/spacetimecontinuum` next to the binary, `/usr/share/spacetimecontinuum`, or the source tree it was built from
 
 ## Permissions
 
@@ -47,7 +47,26 @@ sudo usermod -aG input $USER   # then log out and back in
 .build/release/stcd stretch on 30
 .build/release/stcd mouse-dpi 1600
 .build/release/stcd autostart on # ~/.config/autostart entry
+.build/release/stcd leaderboard name "Wrist Destroyer"
 ```
+
+Run `stcd` with no recognized command for the full list.
+
+The top-bar icon needs a StatusNotifierItem host. KDE has one built in. On GNOME it's the AppIndicator extension, which Ubuntu enables by default; on other distributions install `gnome-shell-extension-appindicator`.
+
+### Mistress Mode
+
+```sh
+stcd mistress on                     # Nanny's break suggestions become 5-minute blocks
+stcd lockout keyboard on 5 60        # block the keyboard 5 minutes for every 60 used
+stcd lockout mouse on 5 60
+stcd warning 2                       # minutes of countdown before a block
+stcd safeword on                     # type UNCLE during a block to end it
+```
+
+Blocking uses `EVIOCGRAB`, so the desktop stops seeing the device while `stcd` keeps reading it. That's how the safe word still works with the keyboard blocked. A keyboard is only grabbed once no keys are held, so a held key can't get stuck repeating. If `stcd` exits or crashes, the kernel releases the grab. Unlike on macOS, a blocked mouse can't move at all, so the countdown's buttons only work while the mouse is free.
+
+The countdown window can't keep itself on top under Wayland. GNOME centers it, and other windows can cover it.
 
 Data lives in `~/.local/share/SpaceTimeContinuum/spacetime.sqlite` (or `$STC_DATA_DIR`). Setting changes are picked up by a running `stcd run` within a minute, except `mouse-dpi`, which needs a restart.
 
@@ -58,9 +77,10 @@ Data lives in `~/.local/share/SpaceTimeContinuum/spacetime.sqlite` (or `$STC_DAT
 - **Screen on**: DPMS state of connected DRM connectors in `/sys/class/drm`.
 - **Unlocked**: logind's `LockedHint` for the graphical session.
 
+## Tests
+
+Run the core's tests with `cd ../core && swift test`. In Docker on macOS, Linux XCTest sometimes hangs in its own teardown, even for a package of empty tests. That's a toolchain problem, not a test failure, so use a real Linux machine or VM for test runs.
+
 ## Still to do
 
-- **Tray**: StatusNotifierItem (GNOME needs the AppIndicator extension, which Ubuntu ships).
-- **Windows**: configuration, graphs and conversion (GTK4).
-- **Mistress Mode**: `EVIOCGRAB` the input devices plus a fullscreen window.
-- **Leaderboard sync and New Entropy downloads** (the core already supports both).
+- **Windows**: configuration, graphs and conversion.
