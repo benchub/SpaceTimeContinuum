@@ -96,11 +96,7 @@ struct EnforcementOverlayView: View {
     }
 
     private func deviceText(_ e: Enforcement) -> String {
-        switch (e.devices.contains(.keyboard), e.devices.contains(.pointer)) {
-        case (true, true): "Keyboard and mouse"
-        case (true, false): "Keyboard"
-        default: "Mouse"
-        }
+        e.device == .keyboard ? "Keyboard" : "Mouse"
     }
 
     private func clock(_ seconds: TimeInterval) -> String {

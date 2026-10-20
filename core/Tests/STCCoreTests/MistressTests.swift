@@ -142,6 +142,23 @@ final class MistressTests: XCTestCase {
         XCTAssertEqual(e.lockedDevices, [.pointer])
     }
 
+    func testOneEnforcementPerDevice() {
+        var e = EnforcementEngine()
+        // A Nanny break asks for both devices: that's one card each.
+        e.request(devices: [.keyboard, .pointer], reason: "break", lockSeconds: 300, warningSeconds: 60, now: t0)
+        XCTAssertEqual(e.active.map(\.device), [.keyboard, .pointer])
+        // A later keyboard request merges into the running one without resetting its clock...
+        e.request(devices: [.keyboard], reason: "kb", lockSeconds: 120, warningSeconds: 60, now: t0.addingTimeInterval(30))
+        XCTAssertEqual(e.active.count, 2)
+        XCTAssertEqual(e.active[0].phaseEnds, t0.addingTimeInterval(60))
+        XCTAssertEqual(e.active[0].lockSeconds, 300)
+        // ...but a longer lock wins, including for a lock already running.
+        e.tick(now: t0.addingTimeInterval(60))
+        e.request(devices: [.pointer], reason: "mouse", lockSeconds: 600, warningSeconds: 60, now: t0.addingTimeInterval(90))
+        XCTAssertEqual(e.active[1].lockSeconds, 600)
+        XCTAssertEqual(e.active[1].phaseEnds, t0.addingTimeInterval(660))
+        XCTAssertEqual(e.active[0].phaseEnds, t0.addingTimeInterval(360))
+    }
 
     func testSchedulerRollingMinutes() {
         var rules = MistressRules()
@@ -150,16 +167,16 @@ final class MistressTests: XCTestCase {
         rules.keyboardLockMinutes = 7
         var s = LockoutScheduler()
         let typing = Activity(keyActiveSeconds: 10)
-        XCTAssertNil(s.ingest(minuteStart: 0, activity: typing, rules: rules))
-        XCTAssertNil(s.ingest(minuteStart: 0, activity: typing, rules: rules)) // same minute: not double counted
-        XCTAssertNil(s.ingest(minuteStart: 60, activity: Activity(), rules: rules)) // idle minute doesn't count
-        XCTAssertNil(s.ingest(minuteStart: 120, activity: typing, rules: rules))
+        XCTAssertEqual(s.ingest(minuteStart: 0, activity: typing, rules: rules), [])
+        XCTAssertEqual(s.ingest(minuteStart: 0, activity: typing, rules: rules), []) // same minute: not double counted
+        XCTAssertEqual(s.ingest(minuteStart: 60, activity: Activity(), rules: rules), []) // idle minute doesn't count
+        XCTAssertEqual(s.ingest(minuteStart: 120, activity: typing, rules: rules), [])
         XCTAssertEqual(s.ingest(minuteStart: 180, activity: typing, rules: rules),
-                       LockoutScheduler.Trip(devices: [.keyboard], lockMinutes: 7))
-        XCTAssertNil(s.ingest(minuteStart: 240, activity: typing, rules: rules))
+                       [LockoutScheduler.Trip(device: .keyboard, lockMinutes: 7)])
+        XCTAssertEqual(s.ingest(minuteStart: 240, activity: typing, rules: rules), [])
     }
 
-    func testSchedulerIgnoresDisabledDevicesAndCombinesTrips() {
+    func testSchedulerIgnoresDisabledDevicesAndKeepsTripsSeparate() {
         var rules = MistressRules()
         rules.keyboardLockEnabled = true
         rules.keyboardEveryMinutes = 1
@@ -168,9 +185,10 @@ final class MistressTests: XCTestCase {
         rules.mouseEveryMinutes = 1
         rules.mouseLockMinutes = 4
         var s = LockoutScheduler()
+        // Each device gets its own lock length, even when both trip in the same minute.
         XCTAssertEqual(s.ingest(minuteStart: 0, activity: Activity(keyActiveSeconds: 1, pointerActiveSeconds: 1), rules: rules),
-                       LockoutScheduler.Trip(devices: [.keyboard, .pointer], lockMinutes: 4))
+                       [LockoutScheduler.Trip(device: .keyboard, lockMinutes: 2), LockoutScheduler.Trip(device: .pointer, lockMinutes: 4)])
         rules.keyboardLockEnabled = false
-        XCTAssertNil(s.ingest(minuteStart: 60, activity: Activity(keyActiveSeconds: 1), rules: rules))
+        XCTAssertEqual(s.ingest(minuteStart: 60, activity: Activity(keyActiveSeconds: 1), rules: rules), [])
     }
 }

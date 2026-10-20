@@ -23,7 +23,7 @@ public struct MistressRules: Codable, Equatable, Sendable {
 /// Rolling "x minutes off for every y minutes of use" scheduling.
 public struct LockoutScheduler: Sendable {
     public struct Trip: Equatable, Sendable {
-        public var devices: Set<InputDevice>
+        public var device: InputDevice
         public var lockMinutes: Int
     }
 
@@ -32,10 +32,10 @@ public struct LockoutScheduler: Sendable {
 
     public init() {}
 
-    /// Counts the minute as used for each device that saw input, and reports devices that reached their limit.
-    public mutating func ingest(minuteStart: Int64, activity: Activity, rules: MistressRules) -> Trip? {
-        var tripped = Set<InputDevice>()
-        var lockMinutes = 0
+    /// Counts the minute as used for each device that saw input, and reports devices that reached
+    /// their limit, each with its own lock length.
+    public mutating func ingest(minuteStart: Int64, activity: Activity, rules: MistressRules) -> [Trip] {
+        var trips: [Trip] = []
         for device in InputDevice.allCases {
             let enabled = device == .keyboard ? rules.keyboardLockEnabled : rules.mouseLockEnabled
             let every = device == .keyboard ? rules.keyboardEveryMinutes : rules.mouseEveryMinutes
@@ -48,11 +48,10 @@ public struct LockoutScheduler: Sendable {
             }
             if usedMinutes[device, default: 0] >= max(1, every) {
                 usedMinutes[device] = 0
-                tripped.insert(device)
-                lockMinutes = max(lockMinutes, lock)
+                trips.append(Trip(device: device, lockMinutes: lock))
             }
         }
-        return tripped.isEmpty ? nil : Trip(devices: tripped, lockMinutes: lockMinutes)
+        return trips
     }
 
     public mutating func reset() {
@@ -61,12 +60,12 @@ public struct LockoutScheduler: Sendable {
     }
 }
 
-/// A warning countdown followed by a lockout.
+/// A warning countdown followed by a lockout, for one device.
 public struct Enforcement: Equatable, Sendable, Identifiable {
     public enum Phase: Equatable, Sendable { case warning, locked }
 
     public var id: Int
-    public var devices: Set<InputDevice>
+    public var device: InputDevice
     public var reason: String
     public var lockSeconds: TimeInterval
     public var phase: Phase
@@ -75,8 +74,8 @@ public struct Enforcement: Equatable, Sendable, Identifiable {
     public func remaining(at now: Date) -> TimeInterval { max(0, phaseEnds.timeIntervalSince(now)) }
 }
 
-/// Runs any number of enforcements side by side; each has its own warning and lockout clock,
-/// so delaying one never holds up another.
+/// Runs at most one enforcement per device, side by side; each has its own warning and lockout
+/// clock, so delaying one never holds up another.
 public struct EnforcementEngine: Sendable {
     public private(set) var active: [Enforcement] = []
     private var nextID = 1
@@ -85,15 +84,25 @@ public struct EnforcementEngine: Sendable {
 
     /// Devices blocked right now, by enforcements in their lockout phase.
     public var lockedDevices: Set<InputDevice> {
-        active.filter { $0.phase == .locked }.reduce(into: Set<InputDevice>()) { $0.formUnion($1.devices) }
+        Set(active.filter { $0.phase == .locked }.map(\.device))
     }
 
+    /// Starts a warning for each device. A device that already has one running keeps it (its
+    /// clock isn't reset), but its lock grows if this request asks for a longer one.
     public mutating func request(devices: Set<InputDevice>, reason: String, lockSeconds: TimeInterval,
                                  warningSeconds: TimeInterval, now: Date) {
-        if active.contains(where: { $0.devices == devices && $0.reason == reason }) { return }
-        active.append(Enforcement(id: nextID, devices: devices, reason: reason, lockSeconds: lockSeconds,
-                                  phase: .warning, phaseEnds: now.addingTimeInterval(warningSeconds)))
-        nextID += 1
+        for device in InputDevice.allCases where devices.contains(device) {
+            if let i = active.firstIndex(where: { $0.device == device }) {
+                if lockSeconds > active[i].lockSeconds {
+                    if active[i].phase == .locked { active[i].phaseEnds.addTimeInterval(lockSeconds - active[i].lockSeconds) }
+                    active[i].lockSeconds = lockSeconds
+                }
+                continue
+            }
+            active.append(Enforcement(id: nextID, device: device, reason: reason, lockSeconds: lockSeconds,
+                                      phase: .warning, phaseEnds: now.addingTimeInterval(warningSeconds)))
+            nextID += 1
+        }
     }
 
     /// Advances every enforcement whose phase time is up. Returns true when anything changed.

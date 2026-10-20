@@ -236,9 +236,10 @@ final class Daemon {
 
     private func checkLockouts(_ rollup: MinuteRollup) {
         guard settings.mistressEnabled else { lockouts.reset(); return }
-        guard let trip = lockouts.ingest(minuteStart: rollup.minuteStart, activity: rollup.activity, rules: settings.mistressRules) else { return }
-        let what = trip.devices.count == 2 ? "keyboard and mouse" : (trip.devices.contains(.keyboard) ? "keyboard" : "mouse")
-        startEnforcement(devices: trip.devices, reason: "Time for a \(what) break", lockMinutes: trip.lockMinutes)
+        for trip in lockouts.ingest(minuteStart: rollup.minuteStart, activity: rollup.activity, rules: settings.mistressRules) {
+            let what = trip.device == .keyboard ? "keyboard" : "mouse"
+            startEnforcement(devices: [trip.device], reason: "Time for a \(what) break", lockMinutes: trip.lockMinutes)
+        }
     }
 
     private func startEnforcement(devices: Set<InputDevice>, reason: String, lockMinutes: Int) {
