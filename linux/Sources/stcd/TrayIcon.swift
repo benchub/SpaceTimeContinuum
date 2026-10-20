@@ -16,6 +16,7 @@ final class TrayIcon {
     private var toggles: [(item: UnsafeMutablePointer<GtkWidget>, get: () -> Bool)] = []
     private var syncing = false
     private var lastOpened = Date.distantPast
+    private var updateItem: UnsafeMutablePointer<GtkWidget>!
     private lazy var leaderboardWindow = LeaderboardWindow(daemon: daemon)
 
     init(daemon: Daemon) {
@@ -46,9 +47,13 @@ final class TrayIcon {
         toggle("New Entropy", get: { $0.settings.newEntropyEnabled }, set: { $0.setNewEntropy($1) })
         toggle("Start at Login", get: { $0.settings.launchAtLogin }, set: { $0.setLaunchAtLogin($1) })
         append(gtk_separator_menu_item_new())
+        updateItem = action("") { _ in Gtk.openURL(Daemon.releasesURL) }
         action("Stop Recording & Quit") { $0.daemon.quit() }
 
         gtk_widget_show_all(menu)
+        gtk_widget_hide(updateItem)
+        daemon.onUpdateAvailable = { [weak self] in self?.showUpdate() }
+        showUpdate()
         app_indicator_set_menu(indicator, Gtk.cast(menu))
         let hooked = Gtk.onMenuOpening(menu) { [weak self] in MainActor.assumeIsolated { self?.opening() } }
         if !hooked {
@@ -103,12 +108,20 @@ final class TrayIcon {
         gtk_menu_shell_append(Gtk.cast(menu), item)
     }
 
-    private func action(_ title: String, _ run: @escaping (TrayIcon) -> Void) {
+    private func showUpdate() {
+        guard let version = daemon.availableUpdate else { return }
+        gtk_menu_item_set_label(Gtk.cast(updateItem), "Update Available: \(version)…")
+        gtk_widget_show(updateItem)
+    }
+
+    @discardableResult
+    private func action(_ title: String, _ run: @escaping (TrayIcon) -> Void) -> UnsafeMutablePointer<GtkWidget> {
         let item = gtk_menu_item_new_with_label(title)!
         Gtk.connect(item, "activate") { [weak self] in
             MainActor.assumeIsolated { if let self { run(self) } }
         }
         append(item)
+        return item
     }
 
     private func toggle(_ title: String, get: @escaping (Daemon) -> Bool, set: @escaping (Daemon, Bool) -> Void) {

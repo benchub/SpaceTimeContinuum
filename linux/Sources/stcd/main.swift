@@ -20,6 +20,8 @@ let usage = """
       travel KEYBOARD_ID MM        Set key travel for a keyboard (IDs come from `devices`)
       mouse-dpi DPI                Set your mouse's resolution (default 1000)
       autostart on|off             Start recording when you log in
+      updates on|off               Check daily for a newer release (default on)
+      version                      Show the version
 
     """
 
@@ -120,6 +122,13 @@ case "leaderboard" where args.count >= 3 && args[1] == "name":
 
 case "leaderboard":
     daemon.setLeaderboardEnabled(onOff(args.dropFirst().first))
+
+case "updates":
+    let on = onOff(args.dropFirst().first)
+    try? daemon.store.setSetting(Daemon.updateChecksKey, on ? nil : "off")
+
+case "version":
+    print("Space Time Continuum \(AppVersion.current)")
 
 case "travel":
     guard args.count == 3, let mm = Double(args[2]), mm > 0, mm < 20 else { fail(usage) }

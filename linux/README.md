@@ -74,6 +74,12 @@ If `stcd warning 0` is set, blocks start without a warning, so there's no countd
 
 Data lives in `~/.local/share/SpaceTimeContinuum/spacetime.sqlite` (or `$STC_DATA_DIR`). Setting changes are picked up by a running `stcd run` within a minute, except `mouse-dpi`, which needs a restart.
 
+## Updates
+
+Linux shares the Mac app's version numbers, so `stcd` checks the Mac app's update feed (`https://spacetime.silentmedia.com/updates/appcast.xml`) once a day. When there's a newer version, it sends one notification and adds an "Update Available" item to the menu that links to this repository. It doesn't install anything. Turn it off with `stcd updates off`.
+
+When releasing, bump `AppVersion.current` in `core/Sources/STCCore/Network/UpdateChecker.swift` along with `CFBundleShortVersionString` in `macos/Resources/Info.plist`. A core test fails if they differ.
+
 ## How it measures
 
 - **Keys**: presses on any evdev device with letter keys, times that keyboard's travel (from `shared/keyboards.json` or `stcd travel`).

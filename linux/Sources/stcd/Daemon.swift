@@ -6,8 +6,11 @@ import STCCore
 /// `run()` shows the tray icon when there's a display and runs headless otherwise.
 @MainActor
 final class Daemon {
-    static let appVersion = "0.1"
     static let mouseDPIKey = "linux_mouse_dpi"
+    static let updateChecksKey = "linux_update_checks"
+    private static let updateCheckedKey = "linux_update_checked"
+    private static let updateNotifiedKey = "linux_update_notified"
+    static let releasesURL = "https://github.com/benchub/SpaceTimeContinuum"
 
     let store: ActivityStore
     let keyboardCatalog: KeyboardCatalog
@@ -23,6 +26,10 @@ final class Daemon {
     private let unitsUpdater: UnitsUpdater
     private let quipsUpdater: QuipsUpdater
     private let sync: SyncService
+    private let updateChecker: UpdateChecker
+    /// A newer release than this one, once the daily check has found it.
+    private(set) var availableUpdate: String?
+    var onUpdateAvailable: (() -> Void)?
     private let nameChecker: NameAvailabilityChecker
     private(set) var nameState: NameAvailabilityChecker.State = .idle
     /// Called when `nameState` changes (the leaderboard window listens).
@@ -49,8 +56,9 @@ final class Daemon {
         formatter = SillyFormatter(catalog: bundledUnits)
         recorder = Recorder(session: session)
 
-        client = LeaderboardClient(userAgent: "SpaceTimeContinuum/\(Self.appVersion) (\(Self.osName()))")
+        client = LeaderboardClient(userAgent: "SpaceTimeContinuum/\(AppVersion.current) (\(Self.osName()))")
         unitsUpdater = UnitsUpdater(client: client, cacheURL: dir.appendingPathComponent("units-cache.json"))
+        updateChecker = UpdateChecker(client: client)
         quipsUpdater = QuipsUpdater(client: client, cacheURL: dir.appendingPathComponent("quips-cache.json"))
         var settingsRef: () -> AppSettings = { AppSettings() }
         sync = SyncService(store: store, client: client, session: session, settings: { settingsRef() })
@@ -67,6 +75,10 @@ final class Daemon {
             input.mouseDPI = dpi
         }
         applyUnitsCatalog()
+        // An update found by an earlier run (checks are only daily).
+        if let found = (try? store.setting(Self.updateNotifiedKey)) ?? nil, AppVersion.isNewer(found, than: AppVersion.current) {
+            availableUpdate = found
+        }
     }
 
     /// `$STC_DATA_DIR`, else `$XDG_DATA_HOME/SpaceTimeContinuum` (~/.local/share by default).
@@ -273,6 +285,7 @@ final class Daemon {
     // MARK: New Entropy
 
     private func backgroundChores() {
+        checkForUpdate()
         guard settings.newEntropyEnabled else { return }
         if quipsUpdater.isDue(lastChecked: settings.quipsLastChecked) {
             Task {
@@ -297,6 +310,33 @@ final class Daemon {
                 updateSettings { $0.unitsLastChecked = Date() }
             case .failed(let message):
                 FileHandle.standardError.write(Data("New Entropy fetch failed: \(message)\n".utf8))
+            }
+        }
+    }
+
+    // MARK: Updates
+
+    /// Whether to check the appcast for new releases (on unless `stcd updates off`).
+    var updateChecksEnabled: Bool {
+        (try? store.setting(Self.updateChecksKey)) != "off"
+    }
+
+    /// Once a day, asks the Mac app's Sparkle appcast for the newest version. Linux can't
+    /// install it, so this only tells you: one notification per new version, plus a menu item.
+    private func checkForUpdate() {
+        guard updateChecksEnabled else { return }
+        let last = (try? store.setting(Self.updateCheckedKey)).flatMap { $0.flatMap(Double.init) }.map(Date.init(timeIntervalSince1970:))
+        guard updateChecker.isDue(lastChecked: last) else { return }
+        Task {
+            guard let latest = try? await updateChecker.latestVersion() else { return }
+            try? store.setSetting(Self.updateCheckedKey, String(Date().timeIntervalSince1970))
+            guard AppVersion.isNewer(latest, than: AppVersion.current) else { return }
+            availableUpdate = latest
+            onUpdateAvailable?()
+            if (try? store.setting(Self.updateNotifiedKey)) != latest {
+                try? store.setSetting(Self.updateNotifiedKey, latest)
+                notifier.notify(title: "Space Time Continuum \(latest) is available",
+                                body: "You have \(AppVersion.current). Get the new version from \(Self.releasesURL)")
             }
         }
     }
