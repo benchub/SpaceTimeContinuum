@@ -9,7 +9,7 @@ public struct NannyRules: Codable, Equatable, Sendable {
     public var activityBreakEnabled = true
     public var activityPercent = 80
     public var activityWindowHours = 1
-    /// Stretch every `stretchEveryMinutes` minutes of screen-on time.
+    /// Stretch every `stretchEveryMinutes` minutes of unlocked screen-on time; time away starts the count over.
     public var stretchEnabled = false
     public var stretchEveryMinutes = 30
 
@@ -131,19 +131,28 @@ public struct QuipRotation: Sendable {
     }
 }
 
-/// Counts screen-on time and says when it's time for a stretch.
+/// Counts screen-on, unlocked time and says when it's time for a stretch.
+/// Time away (a minute with no attentive seconds, or a gap such as sleep) starts the count over.
 public struct StretchTracker: Sendable {
-    private var screenOnSeconds = 0
+    private var attentiveSeconds = 0
+    private var lastMinuteStart: Int64?
 
     public init() {}
 
-    /// Adds screen-on seconds; returns true (and starts over) once `everyMinutes` have accumulated.
-    public mutating func add(screenOnSeconds seconds: Int, everyMinutes: Int) -> Bool {
-        screenOnSeconds += max(0, seconds)
-        guard everyMinutes > 0, screenOnSeconds >= everyMinutes * 60 else { return false }
-        screenOnSeconds = 0
+    /// Adds one minute rollup; returns true (and starts over) once `everyMinutes` have accumulated.
+    public mutating func add(minuteStart: Int64, attentiveSeconds seconds: Int, everyMinutes: Int) -> Bool {
+        defer { lastMinuteStart = minuteStart }
+        if seconds <= 0 || lastMinuteStart.map({ minuteStart - $0 > 60 }) == true {
+            attentiveSeconds = 0
+        }
+        attentiveSeconds += max(0, seconds)
+        guard everyMinutes > 0, attentiveSeconds >= everyMinutes * 60 else { return false }
+        attentiveSeconds = 0
         return true
     }
 
-    public mutating func reset() { screenOnSeconds = 0 }
+    public mutating func reset() {
+        attentiveSeconds = 0
+        lastMinuteStart = nil
+    }
 }

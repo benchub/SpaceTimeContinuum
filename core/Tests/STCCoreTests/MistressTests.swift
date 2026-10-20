@@ -47,9 +47,23 @@ final class NannyRulesTests: XCTestCase {
 
     func testStretchTracker() {
         var t = StretchTracker()
-        XCTAssertFalse(t.add(screenOnSeconds: 29 * 60, everyMinutes: 30))
-        XCTAssertTrue(t.add(screenOnSeconds: 60, everyMinutes: 30))
-        XCTAssertFalse(t.add(screenOnSeconds: 60, everyMinutes: 30))
+        var m: Int64 = 0
+        func add(_ s: Int, after gap: Int64 = 60) -> Bool { m += gap; return t.add(minuteStart: m, attentiveSeconds: s, everyMinutes: 20) }
+        for _ in 0..<19 { XCTAssertFalse(add(60)) }
+        XCTAssertTrue(add(60))
+        XCTAssertFalse(add(60))
+
+        // A locked minute (screen may still be on, but nothing attentive) starts over.
+        for _ in 0..<18 { XCTAssertFalse(add(60)) }
+        XCTAssertFalse(add(0))
+        for _ in 0..<19 { XCTAssertFalse(add(60)) }
+        XCTAssertTrue(add(60))
+
+        // So does a gap in minutes, e.g. the Mac slept.
+        for _ in 0..<18 { XCTAssertFalse(add(60)) }
+        XCTAssertFalse(add(60, after: 3600))
+        for _ in 0..<18 { XCTAssertFalse(add(60)) }
+        XCTAssertTrue(add(60))
     }
 
     func testIgnoredKeyboards() {

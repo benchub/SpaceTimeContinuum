@@ -236,7 +236,7 @@ final class AppModel: ObservableObject {
 
     private func checkStretch(_ rollup: MinuteRollup) {
         guard settings.nannyEnabled, settings.nannyRules.stretchEnabled else { stretch.reset(); return }
-        if stretch.add(screenOnSeconds: rollup.activity.screenOnSeconds, everyMinutes: settings.nannyRules.stretchEveryMinutes) {
+        if stretch.add(minuteStart: rollup.minuteStart, attentiveSeconds: rollup.activity.attentiveSeconds, everyMinutes: settings.nannyRules.stretchEveryMinutes) {
             let pool = Nanny.stretchSuggestions + downloadedStretchQuips
             let message = Nanny.stretchMessage(body: quipRotation.next(from: pool))
             notifier.notify(title: message.title, body: message.body)

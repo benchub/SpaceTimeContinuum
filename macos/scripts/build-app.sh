@@ -38,9 +38,23 @@ done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$(dirname "$ICONSET")"
 
+# Embed Sparkle (auto-updates). SwiftPM drops the framework next to the binary.
+mkdir -p "$APP/Contents/Frameworks"
+ditto "$(dirname "$BIN")/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/SpaceTimeContinuum"
+
 # Notarization requires a secure timestamp.
 TS="--timestamp=none"; [[ -n "${NOTARY_PROFILE:-}" ]] && TS="--timestamp"
-codesign --force --sign "${SIGN_IDENTITY:--}" --options runtime $TS "$APP"
+SIGN=(codesign --force --sign "${SIGN_IDENTITY:--}" --options runtime $TS)
+
+# Sign Sparkle inside-out, per https://sparkle-project.org/documentation/sandboxing/#code-signing
+SPK="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+"${SIGN[@]}" "$SPK/XPCServices/Installer.xpc"
+"${SIGN[@]}" --preserve-metadata=entitlements "$SPK/XPCServices/Downloader.xpc"
+"${SIGN[@]}" "$SPK/Autoupdate"
+"${SIGN[@]}" "$SPK/Updater.app"
+"${SIGN[@]}" "$APP/Contents/Frameworks/Sparkle.framework"
+"${SIGN[@]}" "$APP"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
   ZIP="$(mktemp -d)/app.zip"

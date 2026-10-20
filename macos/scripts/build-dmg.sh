@@ -32,17 +32,17 @@ cleanup() {
 trap cleanup EXIT
 hdiutil detach "$MOUNT" -quiet -force 2>/dev/null || true
 
-STAGE="$WORK/stage"
-mkdir -p "$STAGE/.background"
-cp -R "$APP" "$STAGE/"
-ln -s /Applications "$STAGE/Applications"
-cp "$ICNS" "$STAGE/.VolumeIcon.icns"
-swift "$HERE/scripts/dmg-background.swift" "$STAGE/.background/background.png"
+# A blank image with headroom: one made from a folder is sized to fit exactly,
+# leaving no room for the volume icon or Finder's .DS_Store.
+APP_MB=$(du -sm "$APP" | cut -f1)
+RW="$WORK/rw.sparsebundle"
+diskutil image create blank --format UDSB --fs APFS --size "$((APP_MB + 50))m" --volumeName "$VOLNAME" "$RW" >/dev/null
+diskutil image attach --mountPoint "$MOUNT" "$RW" >/dev/null
 
-RW="$WORK/rw.dmg"
-hdiutil create -volname "$VOLNAME" -srcfolder "$STAGE" -fs HFS+ -format UDRW -ov "$RW" >/dev/null
-hdiutil attach "$RW" -noautoopen -mountpoint "$MOUNT" >/dev/null
-SetFile -a C "$MOUNT"   # use .VolumeIcon.icns as the volume's icon
+ditto "$APP" "$MOUNT/$(basename "$APP")"
+ln -s /Applications "$MOUNT/Applications"
+mkdir -p "$MOUNT/.background"
+swift "$HERE/scripts/dmg-background.swift" "$MOUNT/.background/background.png"
 
 # Window is 660x400 of content; Finder bounds include ~28pt of title bar.
 osascript <<EOF
@@ -67,10 +67,14 @@ tell application "Finder"
 end tell
 EOF
 
+# After the Finder step, which otherwise removes the icon and clears the flag.
+cp "$ICNS" "$MOUNT/.VolumeIcon.icns"
+SetFile -a C "$MOUNT"   # use .VolumeIcon.icns as the volume's icon
+
 sync
 hdiutil detach "$MOUNT" -quiet
 rm -f "$DMG"
-hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null
+diskutil image create from --format UDZO "$RW" "$DMG" >/dev/null
 
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG"

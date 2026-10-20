@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import STCCore
 import SwiftUI
 
@@ -20,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var model: AppModel!
     private var statusItem: NSStatusItem!
     private var windows: [String: NSWindow] = [:]
+    private let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -97,6 +99,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(item("Conversion Tool…", action: #selector(showConversionTool)))
         menu.addItem(item("Configuration…", action: #selector(showConfiguration)))
         menu.addItem(item("Leaderboard", action: #selector(openLeaderboard)))
+        let update = item("Check for Updates…", action: #selector(checkForUpdates))
+        update.isEnabled = updater.updater.canCheckForUpdates
+        menu.addItem(update)
         menu.addItem(.separator())
         menu.addItem(item("Stop Recording & Quit", action: #selector(quit)))
     }
@@ -132,6 +137,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openLeaderboard() {
         if let url = URL(string: "https://spacetime.silentmedia.com/") { NSWorkspace.shared.open(url) }
+    }
+
+    @objc private func checkForUpdates() {
+        updater.checkForUpdates(nil)
     }
 
     @objc private func openPermissions() {
