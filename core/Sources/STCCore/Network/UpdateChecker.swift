@@ -6,7 +6,7 @@ import FoundationNetworking
 /// The app version, shared by every platform. Must match `CFBundleShortVersionString` in
 /// macos/Resources/Info.plist (a test checks), since Sparkle reads that one.
 public enum AppVersion {
-    public static let current = "0.4.1"
+    public static let current = "0.4.2"
 
     /// Compares dotted numeric versions ("0.10.0" > "0.9.2"). Missing parts count as 0.
     public static func isNewer(_ candidate: String, than base: String) -> Bool {
