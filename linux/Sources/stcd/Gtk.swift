@@ -7,9 +7,18 @@ enum Gtk {
     private(set) static var isAvailable = false
 
     /// Connects to the display. Returns false when there isn't one (e.g. over SSH).
+    ///
+    /// Prefers X11 (XWayland under a Wayland session): Wayland doesn't let apps place windows
+    /// or keep them above others, which the Mistress Mode countdown needs. The tray icon and
+    /// notifications go over D-Bus, so they don't care.
     static func initialize() -> Bool {
+        gdk_set_allowed_backends("x11,*")
         isAvailable = gtk_init_check(nil, nil) != 0
         return isAvailable
+    }
+
+    static func openURL(_ url: String) {
+        gtk_show_uri_on_window(nil, url, UInt32(GDK_CURRENT_TIME), nil)
     }
 
     /// Runs the GTK main loop while still servicing the main dispatch queue (and so the main
@@ -43,6 +52,36 @@ enum Gtk {
             Unmanaged<Box>.fromOpaque(data!).release()
         }
         g_signal_connect_data(object, signal, unsafeBitCast(handler, to: GCallback.self), box, release, GConnectFlags(rawValue: 0))
+    }
+
+    /// Calls `action` when the desktop is about to show an AppIndicator menu.
+    ///
+    /// The menu is drawn by the desktop from a dbusmenu copy, so the GtkMenu is never shown.
+    /// libdbusmenu-gtk keeps the root dbusmenu item on the GtkMenu under this key; it gets
+    /// "about-to-show" (the AboutToShow call) and an "opened" event, depending on the desktop.
+    static func onMenuOpening(_ menu: UnsafeMutablePointer<GtkWidget>, _ action: @escaping () -> Void) -> Bool {
+        guard let root = g_object_get_data(UnsafeMutableRawPointer(menu).assumingMemoryBound(to: GObject.self),
+                                           "dbusmenu-gtk-parser-cached-item") else { return false }
+        let release: @convention(c) (gpointer?, UnsafeMutablePointer<GClosure>?) -> Void = { data, _ in
+            Unmanaged<Box>.fromOpaque(data!).release()
+        }
+        // gboolean about_to_show(DbusmenuMenuitem *, gpointer)
+        let aboutToShow: @convention(c) (gpointer?, gpointer?) -> gboolean = { _, data in
+            Unmanaged<Box>.fromOpaque(data!).takeUnretainedValue().action()
+            return 0
+        }
+        // gboolean event(DbusmenuMenuitem *, const gchar *name, GVariant *, guint timestamp, gpointer)
+        let event: @convention(c) (gpointer?, UnsafePointer<CChar>?, gpointer?, UInt32, gpointer?) -> gboolean = { _, name, _, _, data in
+            if let name, String(cString: name) == "opened" {
+                Unmanaged<Box>.fromOpaque(data!).takeUnretainedValue().action()
+            }
+            return 0
+        }
+        g_signal_connect_data(root, "about-to-show", unsafeBitCast(aboutToShow, to: GCallback.self),
+                              Unmanaged.passRetained(Box(action)).toOpaque(), release, GConnectFlags(rawValue: 0))
+        g_signal_connect_data(root, "event", unsafeBitCast(event, to: GCallback.self),
+                              Unmanaged.passRetained(Box(action)).toOpaque(), release, GConnectFlags(rawValue: 0))
+        return true
     }
 
     /// Repeats `action` on the main thread until it's removed with `g_source_remove`.

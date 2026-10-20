@@ -4,18 +4,23 @@ import STCCore
 
 /// The top-bar icon and its menu (StatusNotifierItem via Ayatana AppIndicator). GNOME shows it
 /// through the AppIndicator extension, which Ubuntu enables by default; KDE shows it natively.
+///
+/// Laid out like the Mac menu. The numbers are refreshed when the menu is about to open and
+/// otherwise left alone, so nothing changes width while you're looking at it.
 @MainActor
 final class TrayIcon {
     private let daemon: Daemon
     private let indicator: UnsafeMutablePointer<AppIndicator>
     private let menu: UnsafeMutablePointer<GtkWidget>
-    private var infoItems: [UnsafeMutablePointer<GtkWidget>] = []
+    private var lines: [UnsafeMutablePointer<GtkWidget>] = []
     private var toggles: [(item: UnsafeMutablePointer<GtkWidget>, get: () -> Bool)] = []
     private var syncing = false
+    private var lastOpened = Date.distantPast
+    private lazy var leaderboardWindow = LeaderboardWindow(daemon: daemon)
 
     init(daemon: Daemon) {
         self.daemon = daemon
-        indicator = app_indicator_new("spacetimecontinuum", "input-keyboard", APP_INDICATOR_CATEGORY_APPLICATION_STATUS)!
+        indicator = stc_app_indicator_new("spacetimecontinuum", "input-keyboard", APP_INDICATOR_CATEGORY_APPLICATION_STATUS)!
         menu = gtk_menu_new()
 
         if let dir = Self.installIcon() {
@@ -24,38 +29,71 @@ final class TrayIcon {
         }
         app_indicator_set_title(indicator, "Space Time Continuum")
 
-        for _ in 0..<4 {
+        // Time Today (header, keyboard, its share, mouse, its share), then Distance since… (header, keys, pointer).
+        for i in 0..<8 {
             let item = gtk_menu_item_new_with_label("")!
-            gtk_widget_set_sensitive(item, 0)
+            // Headers look like section titles (dimmed); the numbers stay readable.
+            if i == 0 || i == 5 { gtk_widget_set_sensitive(item, 0) }
             append(item)
-            infoItems.append(item)
+            lines.append(item)
         }
+        append(gtk_separator_menu_item_new())
+        action("Leaderboard Settings…") { $0.leaderboardWindow.show() }
+        action("Leaderboard") { _ in Gtk.openURL("https://spacetime.silentmedia.com/") }
         append(gtk_separator_menu_item_new())
         toggle("Nanny Mode", get: { $0.settings.nannyEnabled }, set: { $0.setNanny($1) })
         toggle("Mistress Mode", get: { $0.settings.mistressEnabled }, set: { $0.setMistress($1) })
         toggle("New Entropy", get: { $0.settings.newEntropyEnabled }, set: { $0.setNewEntropy($1) })
-        toggle("Leaderboard", get: { $0.settings.leaderboardEnabled }, set: { $0.setLeaderboardEnabled($1) })
-        toggle("Start at login", get: { $0.settings.launchAtLogin }, set: { $0.setLaunchAtLogin($1) })
+        toggle("Start at Login", get: { $0.settings.launchAtLogin }, set: { $0.setLaunchAtLogin($1) })
         append(gtk_separator_menu_item_new())
-        let quit = gtk_menu_item_new_with_label("Quit")!
-        Gtk.connect(quit, "activate") { [weak daemon] in
-            MainActor.assumeIsolated { if let daemon { daemon.quit() } }
-        }
-        append(quit)
+        action("Stop Recording & Quit") { $0.daemon.quit() }
 
         gtk_widget_show_all(menu)
         app_indicator_set_menu(indicator, Gtk.cast(menu))
+        let hooked = Gtk.onMenuOpening(menu) { [weak self] in MainActor.assumeIsolated { self?.opening() } }
+        if !hooked {
+            // No way to tell when it opens; refresh once a minute instead.
+            Gtk.every(milliseconds: 60_000) { [weak self] in MainActor.assumeIsolated { self?.refresh() } }
+        }
         app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE)
         refresh()
     }
 
-    /// Updates the numbers and checkmarks. Called every few seconds and after settings change.
+    /// Desktops may announce one opening twice (AboutToShow, then "opened"); a second re-roll
+    /// would change the text while the menu is up.
+    private func opening() {
+        guard Date().timeIntervalSince(lastOpened) > 2 else { return }
+        lastOpened = Date()
+        refresh()
+    }
+
+    /// Re-reads the numbers (re-rolling the silly units) and the checkmarks.
     func refresh() {
-        let lines = daemon.menuLines()
-        for (item, text) in zip(infoItems, lines + Array(repeating: "", count: max(0, infoItems.count - lines.count))) {
-            gtk_menu_item_set_label(Gtk.cast(item), text)
-            gtk_widget_set_visible(item, text.isEmpty ? 0 : 1)
+        let snap = daemon.menuSnapshot()
+        let today = snap.today, lifetime = snap.lifetime.activity
+        func share(_ active: Int) -> String {
+            let pct = today.screenOnSeconds > 0 ? Int((Double(min(active, today.screenOnSeconds)) / Double(today.screenOnSeconds) * 100).rounded()) : 0
+            return "      (\(pct)% of the time your computer screen was on)"
         }
+        let since = snap.lifetime.trackingSince.map {
+            "Distance since " + Date(timeIntervalSince1970: TimeInterval($0)).formatted(date: .abbreviated, time: .omitted)
+        } ?? "Distance travelled"
+        let texts = [
+            "Time Today",
+            "⌨️  Keyboard: \(daemon.formatter.format(Double(today.keyActiveSeconds), .time))",
+            share(today.keyActiveSeconds),
+            "🖱️  Mouse: \(daemon.formatter.format(Double(today.pointerActiveSeconds), .time))",
+            share(today.pointerActiveSeconds),
+            since,
+            "⌨️  Keys: \(daemon.formatter.format(lifetime.keyDistanceMeters, .space))",
+            "🖱️  Pointer: \(daemon.formatter.format(lifetime.pointerDistanceMeters, .space))",
+        ]
+        for (item, text) in zip(lines, texts) { gtk_menu_item_set_label(Gtk.cast(item), text) }
+        refreshToggles()
+    }
+
+    /// Updates just the checkmarks (after a setting changes elsewhere).
+    func refreshToggles() {
         syncing = true
         for t in toggles { gtk_check_menu_item_set_active(Gtk.cast(t.item), t.get() ? 1 : 0) }
         syncing = false
@@ -65,13 +103,21 @@ final class TrayIcon {
         gtk_menu_shell_append(Gtk.cast(menu), item)
     }
 
+    private func action(_ title: String, _ run: @escaping (TrayIcon) -> Void) {
+        let item = gtk_menu_item_new_with_label(title)!
+        Gtk.connect(item, "activate") { [weak self] in
+            MainActor.assumeIsolated { if let self { run(self) } }
+        }
+        append(item)
+    }
+
     private func toggle(_ title: String, get: @escaping (Daemon) -> Bool, set: @escaping (Daemon, Bool) -> Void) {
         let item = gtk_check_menu_item_new_with_label(title)!
         Gtk.connect(item, "toggled") { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, !self.syncing else { return }
                 set(self.daemon, gtk_check_menu_item_get_active(Gtk.cast(item)) != 0)
-                self.refresh()
+                self.refreshToggles()
             }
         }
         append(item)

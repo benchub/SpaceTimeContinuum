@@ -7,6 +7,8 @@ let package = Package(
         .package(path: "../core"),
     ],
     targets: [
+        // SwiftPM warns that it dropped "-pthread" from GLib's pkg-config flags. That's harmless:
+        // Swift links pthreads anyway.
         .systemLibrary(
             name: "CGtk",
             path: "Sources/CGtk",

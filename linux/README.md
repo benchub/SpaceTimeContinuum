@@ -1,6 +1,6 @@
 # Linux front end (early)
 
-`stcd` records keyboard and pointer activity to the same SQLite schema as the Mac app. It shows a top-bar icon with today's numbers and the main toggles, sends Nanny break and stretch reminders as desktop notifications, enforces breaks in Mistress Mode, uploads to the leaderboard and fetches New Entropy. Detailed settings are command-line only for now, and there's no graphs or conversion window yet. Without a display (e.g. over SSH) it runs headless.
+`stcd` records keyboard and pointer activity to the same SQLite schema as the Mac app. It shows a top-bar icon with the same menu as the Mac app (Time Today, Distance since…, a Leaderboard Settings window, and the main toggles), sends Nanny break and stretch reminders as desktop notifications, enforces breaks in Mistress Mode, uploads to the leaderboard and fetches New Entropy. Detailed settings are command-line only for now, and there's no graphs or conversion window yet. Without a display (e.g. over SSH) it runs headless.
 
 ## Build
 
@@ -18,6 +18,8 @@ Open a new terminal (or `source` the file `init` names), check with `swift --ver
 sudo apt install build-essential libsqlite3-dev libnotify-bin libgtk-3-dev libayatana-appindicator3-dev
 cd linux && swift build -c release --static-swift-stdlib
 ```
+
+SwiftPM prints a long `prohibited flag(s): -pthread` warning: GLib's pkg-config flags include `-pthread` and SwiftPM drops it. That's harmless, since Swift links pthreads anyway.
 
 If linking fails with `cannot find crtbeginS.o` or `cannot find -lgcc`, Swift picked the newest GCC under `/usr/lib/gcc/<arch>-linux-gnu/` and that version's dev files aren't installed. Install the ones matching the highest number there, e.g. `sudo apt install libgcc-14-dev libstdc++-14-dev`.
 
@@ -50,7 +52,7 @@ sudo usermod -aG input $USER   # then log out and back in
 .build/release/stcd leaderboard name "Wrist Destroyer"
 ```
 
-Run `stcd` with no recognized command for the full list.
+Run `stcd` with no recognized command for the full list. Silly units in the menu are re-rolled each time it opens, and stay put while it's open.
 
 The top-bar icon needs a StatusNotifierItem host. KDE has one built in. On GNOME it's the AppIndicator extension, which Ubuntu enables by default; on other distributions install `gnome-shell-extension-appindicator`.
 
@@ -66,7 +68,9 @@ stcd safeword on                     # type UNCLE during a block to end it
 
 Blocking uses `EVIOCGRAB`, so the desktop stops seeing the device while `stcd` keeps reading it. That's how the safe word still works with the keyboard blocked. A keyboard is only grabbed once no keys are held, so a held key can't get stuck repeating. If `stcd` exits or crashes, the kernel releases the grab. Unlike on macOS, a blocked mouse can't move at all, so the countdown's buttons only work while the mouse is free.
 
-The countdown window can't keep itself on top under Wayland. GNOME centers it, and other windows can cover it.
+The countdown window sits at the top center of the primary monitor, above other windows. Wayland doesn't allow either, so `stcd` runs its windows through XWayland (X11), which Ubuntu's GNOME and KDE sessions include.
+
+If `stcd warning 0` is set, blocks start without a warning, so there's no countdown and no "Just 5 more minutes" button.
 
 Data lives in `~/.local/share/SpaceTimeContinuum/spacetime.sqlite` (or `$STC_DATA_DIR`). Setting changes are picked up by a running `stcd run` within a minute, except `mouse-dpi`, which needs a restart.
 

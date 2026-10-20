@@ -23,6 +23,10 @@ final class Daemon {
     private let unitsUpdater: UnitsUpdater
     private let quipsUpdater: QuipsUpdater
     private let sync: SyncService
+    private let nameChecker: NameAvailabilityChecker
+    private(set) var nameState: NameAvailabilityChecker.State = .idle
+    /// Called when `nameState` changes (the leaderboard window listens).
+    var onNameStateChange: (() -> Void)?
     private var stretch = StretchTracker()
     private var quipRotation = QuipRotation()
     private var downloadedStretchQuips: [String] = []
@@ -50,7 +54,14 @@ final class Daemon {
         quipsUpdater = QuipsUpdater(client: client, cacheURL: dir.appendingPathComponent("quips-cache.json"))
         var settingsRef: () -> AppSettings = { AppSettings() }
         sync = SyncService(store: store, client: client, session: session, settings: { settingsRef() })
+        var guidRef: () -> String = { "" }
+        nameChecker = NameAvailabilityChecker(client: client, guid: { guidRef() })
         settingsRef = { [unowned self] in self.settings }
+        guidRef = { [unowned self] in self.settings.deviceGUID }
+        nameChecker.onChange = { [weak self] state in
+            self?.nameState = state
+            self?.onNameStateChange?()
+        }
 
         if let dpi = (try? store.setting(Self.mouseDPIKey)).flatMap({ $0.flatMap(Double.init) }), dpi > 0 {
             input.mouseDPI = dpi
@@ -145,14 +156,10 @@ final class Daemon {
         timers.append(timer)
     }
 
-    private var tickCount = 0
-
     private func tick() {
         recorder.tick()
         if engine.tick(now: Date()) { syncEnforcement() }
         if !engine.active.isEmpty { overlay.show(engine.active, safeWordEnabled: settings.mistressRules.safeWordEnabled) }
-        tickCount += 1
-        if tickCount % 5 == 0 { tray?.refresh() }
     }
 
     private func keyPressed(_ keyboard: KeyboardDevice, code: Int) {
@@ -178,7 +185,7 @@ final class Daemon {
             settings = fresh
             if entropyChanged { applyUnitsCatalog() }
             if !settings.mistressEnabled { cancelMistress() }
-            tray?.refresh()
+            tray?.refreshToggles()
         }
         checkNanny()
         checkStretch(rollup)
@@ -323,6 +330,28 @@ final class Daemon {
         updateSettings { $0.leaderboardEnabled = enabled }
     }
 
+    func leaderboardNameEdited(_ name: String) {
+        guard Features.leaderboardAvailable else { return }
+        nameChecker.update(name)
+    }
+
+    /// Claims a name; `done` gets the message to show.
+    func claimLeaderboardName(_ raw: String, done: @escaping ((text: String, success: Bool)) -> Void) {
+        let name = LeaderboardName.normalize(raw)
+        Task {
+            switch await client.claimName(guid: settings.deviceGUID, token: settings.deviceToken, name: name) {
+            case .success(let claimed):
+                updateSettings { $0.leaderboardName = claimed }
+                done(("Your leaderboard name is now \(claimed).", true))
+            case .unavailable(let n):
+                nameState = .unavailable(reason: "taken")
+                done(("Someone just claimed \(n). Try another name.", false))
+            case .error(let message):
+                done(("Couldn't set the name: \(message)", false))
+            }
+        }
+    }
+
     func setLaunchAtLogin(_ enabled: Bool) {
         do {
             try loginItem.setEnabled(enabled)
@@ -349,20 +378,12 @@ final class Daemon {
 
     // MARK: Reading
 
-    /// Today's numbers for the tray menu, including the minute in progress.
-    func menuLines() -> [String] {
+    /// Today (including the minute in progress) and lifetime totals, for the tray menu.
+    func menuSnapshot() -> (today: Activity, lifetime: LifetimeTotals) {
         let today = ((try? store.dayActivity(containing: Date())) ?? .zero) + recorder.currentMinuteActivity
-        let lifetime = (try? store.totals())?.activity ?? .zero
-        var lines = [
-            "Keyboard today: \(Self.duration(today.keyActiveSeconds))",
-            "Mouse today: \(Self.duration(today.pointerActiveSeconds))",
-            "Keys traveled: \(formatter.format(lifetime.keyDistanceMeters, .space))",
-            "Pointer traveled: \(formatter.format(lifetime.pointerDistanceMeters, .space))",
-        ]
-        if settings.leaderboardEnabled, !settings.leaderboardName.isEmpty, let last = sync.lastResult {
-            lines[3] += " · \(last)"
-        }
-        return lines
+        var lifetime = (try? store.totals()) ?? LifetimeTotals()
+        lifetime.activity += recorder.currentMinuteActivity
+        return (today, lifetime)
     }
 
     /// Today's and lifetime totals as printable lines.

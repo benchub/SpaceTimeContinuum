@@ -4,8 +4,9 @@ import STCCore
 
 /// Small always-on-top window with one countdown card per warning or lockout, like the Mac panel.
 ///
-/// Wayland doesn't let apps place windows or keep them above others, so there the compositor
-/// decides where it goes (GNOME centers it). Never takes focus, so typing isn't interrupted.
+/// Sits at the top center of the primary monitor, above other windows, on every workspace. That
+/// needs X11 (XWayland under Wayland; see `Gtk.initialize`). Never takes focus, so typing isn't
+/// interrupted.
 @MainActor
 final class EnforcementOverlay {
     var onExtend: ((Int) -> Void)?
@@ -52,7 +53,7 @@ final class EnforcementOverlay {
         gtk_window_set_skip_pager_hint(win, 1)
         gtk_window_set_resizable(win, 0)
         gtk_window_stick(win)
-        gtk_window_set_position(win, GTK_WIN_POS_CENTER)
+        gtk_window_set_type_hint(win, GDK_WINDOW_TYPE_HINT_UTILITY)
         // If something closes it anyway, forget it so the next update brings it back.
         Gtk.connect(w, "destroy") { [weak self] in
             MainActor.assumeIsolated {
@@ -84,8 +85,20 @@ final class EnforcementOverlay {
         }
         Gtk.add(w, row)
         gtk_widget_show_all(w)
+        placeAtTop(win)
         window = w
         layout = enforcements.map { "\($0.id):\($0.phase)" }
+    }
+
+    private func placeAtTop(_ win: UnsafeMutablePointer<GtkWindow>) {
+        guard let display = gdk_display_get_default(),
+              let monitor = gdk_display_get_primary_monitor(display) ?? gdk_display_get_monitor(display, 0)
+        else { return }
+        var area = GdkRectangle()
+        gdk_monitor_get_workarea(monitor, &area)
+        var width: Int32 = 0, height: Int32 = 0
+        gtk_window_get_size(win, &width, &height)
+        gtk_window_move(win, area.x + (area.width - width) / 2, area.y + 12)
     }
 
     static func deviceText(_ e: Enforcement) -> String {
