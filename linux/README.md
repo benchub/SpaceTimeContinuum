@@ -15,7 +15,7 @@ tar zxf swiftly-$(uname -m).tar.gz
 Open a new terminal (or `source` the file `init` names), check with `swift --version`, then:
 
 ```sh
-sudo apt install build-essential libsqlite3-dev libnotify-bin libgtk-3-dev libayatana-appindicator3-dev
+sudo apt install build-essential libsqlite3-dev libcurl4-openssl-dev libnotify-bin libgtk-3-dev libayatana-appindicator3-dev
 cd linux && swift build -c release --static-swift-stdlib
 ```
 
