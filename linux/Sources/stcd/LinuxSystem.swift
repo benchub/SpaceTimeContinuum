@@ -105,6 +105,25 @@ final class LinuxNotifier: Notifying {
     }
 }
 
+/// Starts a program with no output and doesn't wait for it (it's reaped in the background).
+func spawnDetached(_ path: String, _ args: [String]) {
+    var actions = posix_spawn_file_actions_t()
+    posix_spawn_file_actions_init(&actions)
+    defer { posix_spawn_file_actions_destroy(&actions) }
+    posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0)
+    posix_spawn_file_actions_addopen(&actions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0)
+    posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0)
+    let argv = ([path] + args).map { strdup($0) } + [nil]
+    defer { argv.forEach { free($0) } }
+    var pid: pid_t = 0
+    guard posix_spawn(&pid, path, &actions, nil, argv, environ) == 0 else { return }
+    let child = pid
+    DispatchQueue.global(qos: .utility).async {
+        var status: Int32 = 0
+        while waitpid(child, &status, 0) < 0 && errno == EINTR {}
+    }
+}
+
 /// Runs a program and returns its trimmed stdout, or nil if it couldn't run or failed.
 ///
 /// Uses posix_spawn rather than Foundation's Process: `Process.waitUntilExit()` spins the

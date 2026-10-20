@@ -13,12 +13,15 @@ enum Gtk {
     /// notifications go over D-Bus, so they don't care.
     static func initialize() -> Bool {
         gdk_set_allowed_backends("x11,*")
+        stc_quiet_ayatana_deprecation()
         isAvailable = gtk_init_check(nil, nil) != 0
         return isAvailable
     }
 
+    /// Opens a link in the default browser. Uses xdg-open with its output discarded, since
+    /// browsers (and snapd starting a snap browser) write chatter to the terminal they inherit.
     static func openURL(_ url: String) {
-        gtk_show_uri_on_window(nil, url, UInt32(GDK_CURRENT_TIME), nil)
+        spawnDetached("/usr/bin/xdg-open", [url])
     }
 
     /// Runs the GTK main loop while still servicing the main dispatch queue (and so the main
