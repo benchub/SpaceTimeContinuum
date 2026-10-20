@@ -1,6 +1,16 @@
 import Foundation
 #if canImport(CoreGraphics)
 import CoreGraphics
+#else
+/// swift-corelibs-foundation has CGPoint/CGRect but not CGVector.
+public struct CGVector: Equatable, Sendable {
+    public var dx: CGFloat
+    public var dy: CGFloat
+    public init(dx: CGFloat, dy: CGFloat) {
+        self.dx = dx
+        self.dy = dy
+    }
+}
 #endif
 
 /// A display's position in the global (point-based) desktop space and its physical size.
