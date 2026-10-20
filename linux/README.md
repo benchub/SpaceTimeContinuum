@@ -66,7 +66,7 @@ stcd warning 2                       # minutes of countdown before a block
 stcd safeword on                     # type UNCLE during a block to end it
 ```
 
-Blocking uses `EVIOCGRAB`, so the desktop stops seeing the device while `stcd` keeps reading it. That's how the safe word still works with the keyboard blocked. A keyboard is only grabbed once no keys are held, so a held key can't get stuck repeating. If `stcd` exits or crashes, the kernel releases the grab. Unlike on macOS, a blocked mouse can't move at all, so the countdown's buttons only work while the mouse is free.
+Blocking uses `EVIOCGRAB`, so the desktop stops seeing the device while `stcd` keeps reading it. That's how the safe word still works with the keyboard blocked. A keyboard is only grabbed once no keys are held, so a held key can't get stuck repeating. If `stcd` exits or crashes, the kernel releases the grab. A blocked mouse can't move at all, so the countdown's buttons only work while the mouse is free.
 
 The countdown window sits at the top center of the primary monitor, above other windows. Wayland doesn't allow either, so `stcd` runs its windows through XWayland (X11), which Ubuntu's GNOME and KDE sessions include.
 

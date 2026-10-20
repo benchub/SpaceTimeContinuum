@@ -41,7 +41,7 @@ final class Daemon {
     private var lockouts = LockoutScheduler()
     private let overlay = EnforcementOverlay()
     private var tray: TrayIcon?
-    private var recentKeys: [Int] = []
+    private var safeWord = SafeWord()
     private var travelMetersByKeyboard: [String: Double] = [:]
     private var timers: [DispatchSourceTimer] = []
     private var signalSources: [DispatchSourceSignal] = []
@@ -175,11 +175,7 @@ final class Daemon {
     }
 
     private func keyPressed(_ keyboard: KeyboardDevice, code: Int) {
-        if engine.lockedDevices.isEmpty {
-            recentKeys.removeAll()
-        } else {
-            checkSafeWord(code)
-        }
+        checkSafeWord(code)
         guard !engine.lockedDevices.contains(.keyboard) else { return }
         let meters = travelMetersByKeyboard[keyboard.id] ?? travelMeters(for: keyboard)
         recorder.recordKeyPress(travelMeters: meters)
@@ -232,7 +228,12 @@ final class Daemon {
 
     // MARK: Mistress Mode
 
-    private static let safeWord = [22, 49, 46, 38, 18] // U N C L E
+    /// evdev key codes for A–Z, which follow the QWERTY layout rather than the alphabet.
+    private static let letters: [Int: Character] = Dictionary(uniqueKeysWithValues: zip(
+        [30, 48, 46, 32, 18, 33, 34, 35, 23, 36, 37, 38, 50, 49, 24, 25, 16, 19, 31, 20, 22, 47, 17, 45, 21, 44],
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+    /// Shift, Ctrl, Alt, Meta and Caps Lock, which don't interrupt the safe word.
+    private static let modifiers: Set<Int> = [42, 54, 29, 97, 56, 100, 125, 126, 58]
 
     private func checkLockouts(_ rollup: MinuteRollup) {
         guard settings.mistressEnabled else { lockouts.reset(); return }
@@ -263,12 +264,14 @@ final class Daemon {
         overlay.show(engine.active, safeWordEnabled: settings.mistressRules.safeWordEnabled)
     }
 
+    /// The safe word: typing UNCLE (even on a grabbed keyboard) ends every running lockout.
     private func checkSafeWord(_ code: Int) {
-        guard settings.mistressRules.safeWordEnabled else { return }
-        recentKeys.append(code)
-        if recentKeys.count > Self.safeWord.count { recentKeys.removeFirst() }
-        guard recentKeys == Self.safeWord else { return }
-        recentKeys.removeAll()
+        guard settings.mistressRules.safeWordEnabled, !engine.lockedDevices.isEmpty else {
+            safeWord.reset()
+            return
+        }
+        if Self.modifiers.contains(code) { return }
+        guard safeWord.key(Self.letters[code]) else { return }
         for e in engine.active where e.phase == .locked { engine.endLock(id: e.id) }
         syncEnforcement()
     }

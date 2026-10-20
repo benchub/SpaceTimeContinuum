@@ -35,6 +35,7 @@ final class AppModel: ObservableObject {
     private var blockedDevices: Set<InputDevice> = []
     private var lockouts = LockoutScheduler()
     private var stretch = StretchTracker()
+    private var safeWord = SafeWord()
     private var quipRotation = QuipRotation()
     private var downloadedStretchQuips: [String] = []
     private let blocker = MacInputBlocker()
@@ -90,8 +91,10 @@ final class AppModel: ObservableObject {
         recorder.onMinute = { [weak self] rollup in
             MainActor.assumeIsolated { self?.persist(rollup) }
         }
-        input.onKeyPress = { [weak self] keyboard in
-            guard let self, !self.isBlocked(.keyboard) else { return }
+        input.onKeyPress = { [weak self] keyboard, usage in
+            guard let self else { return }
+            self.checkSafeWord(usage)
+            guard !self.isBlocked(.keyboard) else { return }
             let meters = self.travelMetersByKeyboard[keyboard.id] ?? self.travelMeters(for: keyboard)
             self.recorder.recordKeyPress(travelMeters: meters)
         }
@@ -100,7 +103,6 @@ final class AppModel: ObservableObject {
             self.recorder.recordPointerMovement(meters: meters)
         }
         input.onKeyboardsChanged = { [weak self] in self?.keyboardsChanged() }
-        blocker.passThroughRects = { [weak self] in self?.overlay.frames ?? [] }
         hasAccessibilityPermission = MacInputBlocker.isTrusted
 
         hasInputPermission = input.hasPermission
@@ -279,7 +281,7 @@ final class AppModel: ObservableObject {
             blockedDevices = locked
             if locked.isEmpty {
                 blocker.unblock()
-            } else if !blocker.block(locked, allowPointerMovement: settings.mistressRules.safeWordEnabled) {
+            } else if !blocker.block(locked) {
                 // Couldn't block (Accessibility permission lost); skip these lockouts.
                 hasAccessibilityPermission = false
                 blockedDevices = []
@@ -295,10 +297,18 @@ final class AppModel: ObservableObject {
         if engine.extendWarning(id: id, by: 5 * 60) { syncEnforcement() }
     }
 
-    /// The safe word: ends one running lockout early.
-    func endLockout(_ id: Int) {
-        guard settings.mistressRules.safeWordEnabled else { return }
-        if engine.endLock(id: id) { syncEnforcement() }
+    /// The safe word: typing UNCLE (even on a blocked keyboard) ends every running lockout.
+    private func checkSafeWord(_ usage: UInt32) {
+        guard settings.mistressEnabled, settings.mistressRules.safeWordEnabled, !engine.lockedDevices.isEmpty else {
+            safeWord.reset()
+            return
+        }
+        if (0xE0...0xE7).contains(usage) || usage == 0x39 { return } // modifiers and Caps Lock
+        // HID usages 0x04...0x1D are A...Z.
+        let letter = (0x04...0x1D).contains(usage) ? Character(UnicodeScalar(UInt8(0x41 + usage - 0x04))) : nil
+        guard safeWord.key(letter) else { return }
+        for e in engine.active where e.phase == .locked { engine.endLock(id: e.id) }
+        syncEnforcement()
     }
 
     func setMistress(_ enabled: Bool) {

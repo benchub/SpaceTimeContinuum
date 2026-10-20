@@ -6,16 +6,11 @@ import STCCore
 /// Swallows keyboard and/or pointer events with an active event tap while a lockout is running.
 ///
 /// Creating an active tap needs the Accessibility permission. The tap exists only during a lockout.
-/// Pointer events over `passThroughRect` (the countdown panel) are always let through so its
-/// buttons keep working.
+/// Key presses still reach IOHID (and so the safe word check) while the keyboard is blocked.
 final class MacInputBlocker {
-    /// Frame, in Cocoa screen coordinates, in which pointer events are never blocked.
-    var passThroughRects: () -> [CGRect] = { [] }
-
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var devices: Set<InputDevice> = []
-    private var allowPointerMovement = false
     private var cursorFrozen = false
     private var frozenLocation = CGPoint.zero
 
@@ -36,15 +31,13 @@ final class MacInputBlocker {
 
     var isBlocking: Bool { tap != nil }
 
-    /// Starts blocking `devices`. When `allowPointerMovement` is true the cursor can still move
-    /// (so the countdown panel can be reached) but pointer buttons and scrolling are blocked.
+    /// Starts blocking `devices`; a blocked pointer is frozen in place.
     /// Returns false if the tap couldn't be created (no Accessibility permission).
     @discardableResult
-    func block(_ devices: Set<InputDevice>, allowPointerMovement: Bool) -> Bool {
+    func block(_ devices: Set<InputDevice>) -> Bool {
         unblock()
         guard !devices.isEmpty else { return true }
         self.devices = devices
-        self.allowPointerMovement = allowPointerMovement
 
         let types = Self.keyboardTypes.union(Self.pointerButtonTypes).union([.mouseMoved])
         let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
@@ -62,7 +55,7 @@ final class MacInputBlocker {
             return false
         }
         self.tap = tap
-        if devices.contains(.pointer), !allowPointerMovement {
+        if devices.contains(.pointer) {
             frozenLocation = CGEvent(source: nil)?.location ?? .zero
             // Also detach the cursor from the mouse; the warp in `handle` is the backstop.
             CGAssociateMouseAndMouseCursorPosition(0)
@@ -98,17 +91,10 @@ final class MacInputBlocker {
         if Self.keyboardTypes.contains(type) { return devices.contains(.keyboard) ? nil : pass }
         guard devices.contains(.pointer) else { return pass }
         if type == .mouseMoved || type == .leftMouseDragged || type == .rightMouseDragged || type == .otherMouseDragged {
-            if allowPointerMovement || overPanel(event) { return pass }
             // Dropping the event isn't enough to stop the cursor, so pin it in place.
             CGWarpMouseCursorPosition(frozenLocation)
             return nil
         }
-        return overPanel(event) ? pass : nil
-    }
-
-    private func overPanel(_ event: CGEvent) -> Bool {
-        guard let primary = NSScreen.screens.first else { return false }
-        let location = CGPoint(x: event.location.x, y: primary.frame.height - event.location.y)
-        return passThroughRects().contains { $0.contains(location) }
+        return nil
     }
 }

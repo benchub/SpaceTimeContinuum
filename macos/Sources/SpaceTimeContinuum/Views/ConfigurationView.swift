@@ -148,7 +148,7 @@ struct ConfigurationView: View {
                 stepper(setting(\.mistressRules.mouseEveryMinutes), 5...480, step: 5, unit: minutes)
             }
             Toggle("Allow a safe word escape", isOn: setting(\.mistressRules.safeWordEnabled))
-                .help("Adds a button to the lockout counter that ends it early. While the mouse is blocked, the pointer can still move so you can reach it.")
+                .help("Type \(SafeWord.word) during a lockout to end it early. It works even while the keyboard is blocked.")
         }
         .padding(.leading, 20)
     }

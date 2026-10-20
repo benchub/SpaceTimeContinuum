@@ -21,8 +21,6 @@ final class EnforcementOverlay {
         CGFloat(max(1, count)) * cardWidth + CGFloat(max(0, count - 1)) * spacing
     }
 
-    var frames: [CGRect] { panels.values.filter(\.isVisible).map(\.frame) }
-
     /// Mirrors the cards onto every connected display.
     func show(model: AppModel, count: Int) {
         var live = Set<CGDirectDisplayID>()
@@ -79,14 +77,12 @@ struct EnforcementOverlayView: View {
                 .font(.headline)
             Text(clock(e.remaining(at: now)))
                 .font(.system(size: 40, weight: .semibold, design: .monospaced))
-            Text(locked ? "until input is allowed again" : e.reason)
+            Text(locked ? (model.settings.mistressRules.safeWordEnabled ? "until input is allowed again.\nType \(SafeWord.word) to escape." : "until input is allowed again") : e.reason)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             if !locked {
                 Button("Just 5 more minutes") { model.extendWarning(e.id) }
-            } else if model.settings.mistressRules.safeWordEnabled {
-                Button("Escape with safe word") { model.endLockout(e.id) }
             }
         }
         .padding(16)

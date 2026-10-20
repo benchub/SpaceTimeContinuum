@@ -14,7 +14,7 @@ public struct MistressRules: Codable, Equatable, Sendable {
     public var mouseLockEnabled = false
     public var mouseLockMinutes = 5
     public var mouseEveryMinutes = 60
-    /// Adds an "end it early" button to the lockout counter.
+    /// Typing `SafeWord.word` during a lockout ends it early.
     public var safeWordEnabled = false
 
     public init() {}
@@ -147,4 +147,26 @@ public struct EnforcementEngine: Sendable {
     public mutating func cancelAll() {
         active.removeAll()
     }
+}
+
+/// Spots the safe word being typed during a lockout. Platforms see raw key codes even on a
+/// blocked keyboard; they map letters to characters and feed every key press in.
+public struct SafeWord: Sendable {
+    public static let word = "UNCLE"
+    private var recent: [Character] = []
+
+    public init() {}
+
+    /// Returns true when this key press completes the word. Pass nil for other keys, and skip
+    /// modifiers (Shift, Caps Lock…) entirely so capitals work.
+    public mutating func key(_ letter: Character?) -> Bool {
+        guard let letter else { recent.removeAll(); return false }
+        recent.append(Character(letter.uppercased()))
+        if recent.count > Self.word.count { recent.removeFirst() }
+        guard String(recent) == Self.word else { return false }
+        recent.removeAll()
+        return true
+    }
+
+    public mutating func reset() { recent.removeAll() }
 }

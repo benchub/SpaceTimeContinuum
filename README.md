@@ -35,7 +35,7 @@ The database is `~/Library/Application Support/SpaceTimeContinuum/spacetime.sqli
 - **Menu bar**: today's keyboard and mouse time, plus lifetime distance, in silly units. Hover a line to see real units.
 - **Time Graphs**: Today, This week or This month, compared against yesterday, last week, last month, or a typical weekday, weekend or period.
 - **Nanny Mode** (opt-in): suggests healthy breaks when you've been at it too long. "Too long" is configurable.
-- **Mistress Mode** (opt-in): enforces breaks to keep your RSI from acting up. Enforcement is configurable and optionally lets you break out with a safe word.
+- **Mistress Mode** (opt-in): enforces breaks to keep your RSI from acting up. Enforcement is configurable and optionally lets you break out by typing the safe word, UNCLE.
 - **New Entropy**: downloads fresh silly units from `https://spacetime.silentmedia.com/units` once a day, plus extra stretch reminders from `.../quips`.
 - **Leaderboard** (opt-in): If you want to brag about your usage to other addicts, Space Time Continuum will do it for you can.
 

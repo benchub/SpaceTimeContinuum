@@ -27,7 +27,7 @@ final class EnforcementOverlay {
             Gtk.setLabel(card.title, markup: "<b>\(Gtk.escape(locked ? "\(Self.deviceText(e)) blocked" : "\(Self.deviceText(e)) will be blocked"))</b>")
             Gtk.setLabel(card.clock, markup: "<span size='xx-large' font_family='monospace' weight='bold'>\(Self.clock(e.remaining(at: now)))</span>")
             let detail = locked
-                ? (safeWordEnabled ? "until input is allowed again.\nType UNCLE to escape." : "until input is allowed again")
+                ? (safeWordEnabled ? "until input is allowed again.\nType \(SafeWord.word) to escape." : "until input is allowed again")
                 : e.reason
             Gtk.setLabel(card.detail, markup: Gtk.escape(detail))
         }

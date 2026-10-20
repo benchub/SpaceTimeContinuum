@@ -9,7 +9,9 @@ import STCCore
 ///
 /// Both require the "Input Monitoring" privacy permission. Callbacks arrive on the main run loop.
 final class MacInputMonitor: InputMonitoring {
-    var onKeyPress: ((KeyboardDevice) -> Void)?
+    /// A key went down: which keyboard, and its HID usage (page 0x07). Also fires while the
+    /// keyboard is blocked, since IOHID sits below the blocking event tap.
+    var onKeyPress: ((KeyboardDevice, UInt32) -> Void)?
     var onPointerMove: ((Double) -> Void)?
     var onKeyboardsChanged: (() -> Void)?
 
@@ -138,7 +140,7 @@ final class MacInputMonitor: InputMonitoring {
         let device = IOHIDElementGetDevice(element)
         if ignoredDevices.contains(device) { return }
         let keyboard = devices[device] ?? KeyboardDevice(vendorID: 0, productID: 0, productName: "Unknown keyboard", isBuiltIn: false)
-        onKeyPress?(keyboard)
+        onKeyPress?(keyboard, usage)
     }
 
     // MARK: Pointer

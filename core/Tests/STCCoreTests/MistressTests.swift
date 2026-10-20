@@ -160,6 +160,17 @@ final class MistressTests: XCTestCase {
         XCTAssertEqual(e.active[0].phaseEnds, t0.addingTimeInterval(360))
     }
 
+    func testSafeWord() {
+        var w = SafeWord()
+        XCTAssertFalse("uncl".map { w.key($0) }.contains(true))
+        XCTAssertTrue(w.key("e"))
+        // Other keys in between break it; leading junk doesn't.
+        XCTAssertFalse("xxunc".map { w.key($0) }.contains(true))
+        XCTAssertFalse(w.key(nil))
+        XCTAssertFalse("le".map { w.key($0) }.contains(true))
+        XCTAssertEqual("xUNCLE".map { w.key($0) }.last, true)
+    }
+
     func testSchedulerRollingMinutes() {
         var rules = MistressRules()
         rules.keyboardLockEnabled = true
