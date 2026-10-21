@@ -1,6 +1,6 @@
 # Linux front end (early)
 
-`stcd` records keyboard and pointer activity to the same SQLite schema as the Mac app. It shows a top-bar icon with the same menu as the Mac app (Time Today, Distance since…, a Leaderboard Settings window, and the main toggles), sends Nanny break and stretch reminders as desktop notifications, enforces breaks in Mistress Mode, uploads to the leaderboard and fetches New Entropy. Detailed settings are command-line only for now, and there's no graphs or conversion window yet. Without a display (e.g. over SSH) it runs headless.
+`stcd` records keyboard and pointer activity to the same SQLite schema as the Mac app. It shows a top-bar icon with the same menu as the Mac app (Time Today, Distance since…, Time Graphs, the Conversion Tool, a Leaderboard Settings window, and the main toggles), sends Nanny break and stretch reminders as desktop notifications, enforces breaks in Mistress Mode, uploads to the leaderboard and fetches New Entropy. Detailed settings are command-line only for now. Without a display (e.g. over SSH) it runs headless.
 
 ## Build
 
@@ -93,4 +93,4 @@ Run the core's tests with `cd ../core && swift test`. In Docker on macOS, Linux 
 
 ## Still to do
 
-- **Windows**: configuration, graphs and conversion.
+- **Windows**: configuration.

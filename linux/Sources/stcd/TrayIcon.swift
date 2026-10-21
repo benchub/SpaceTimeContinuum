@@ -18,6 +18,8 @@ final class TrayIcon {
     private var lastOpened = Date.distantPast
     private var updateItem: UnsafeMutablePointer<GtkWidget>!
     private lazy var leaderboardWindow = LeaderboardWindow(daemon: daemon)
+    private lazy var graphsWindow = GraphsWindow(daemon: daemon)
+    private lazy var conversionWindow = ConversionWindow(daemon: daemon)
 
     init(daemon: Daemon) {
         self.daemon = daemon
@@ -39,6 +41,8 @@ final class TrayIcon {
             lines.append(item)
         }
         append(gtk_separator_menu_item_new())
+        action("Time Graphs…") { $0.graphsWindow.show() }
+        action("Conversion Tool…") { $0.conversionWindow.show() }
         action("Leaderboard Settings…") { $0.leaderboardWindow.show() }
         action("Leaderboard") { _ in Gtk.openURL("https://spacetime.silentmedia.com/") }
         append(gtk_separator_menu_item_new())

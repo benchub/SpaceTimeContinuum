@@ -57,6 +57,25 @@ enum Gtk {
         g_signal_connect_data(object, signal, unsafeBitCast(handler, to: GCallback.self), box, release, GConnectFlags(rawValue: 0))
     }
 
+    private final class EventBox {
+        let action: (UnsafeMutableRawPointer?) -> Bool
+        init(_ action: @escaping (UnsafeMutableRawPointer?) -> Bool) { self.action = action }
+    }
+
+    /// `g_signal_connect` for signals whose handler takes (instance, pointer, user_data) and
+    /// returns a gboolean: "draw" (the cairo_t) and the *-event signals (the GdkEvent).
+    /// Return true to stop other handlers.
+    static func connectEvent<T>(_ object: UnsafeMutablePointer<T>?, _ signal: String, _ action: @escaping (UnsafeMutableRawPointer?) -> Bool) {
+        let box = Unmanaged.passRetained(EventBox(action)).toOpaque()
+        let handler: @convention(c) (gpointer?, gpointer?, gpointer?) -> gboolean = { _, arg, data in
+            Unmanaged<EventBox>.fromOpaque(data!).takeUnretainedValue().action(arg) ? 1 : 0
+        }
+        let release: @convention(c) (gpointer?, UnsafeMutablePointer<GClosure>?) -> Void = { data, _ in
+            Unmanaged<EventBox>.fromOpaque(data!).release()
+        }
+        g_signal_connect_data(object, signal, unsafeBitCast(handler, to: GCallback.self), box, release, GConnectFlags(rawValue: 0))
+    }
+
     /// Calls `action` when the desktop is about to show an AppIndicator menu.
     ///
     /// The menu is drawn by the desktop from a dbusmenu copy, so the GtkMenu is never shown.

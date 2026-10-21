@@ -33,7 +33,7 @@ The database is `~/Library/Application Support/SpaceTimeContinuum/spacetime.sqli
 ## Features
 
 - **Menu bar**: today's keyboard and mouse time, plus lifetime distance, in silly units. Hover a line to see real units (macOS).
-- **Time Graphs** (macOS): Today, This week or This month, compared against yesterday, last week, last month, or a typical weekday, weekend or period.
+- **Time Graphs**: Today, This week or This month, compared against yesterday, last week, last month, or a typical weekday, weekend or period.
 - **Nanny Mode** (opt-in): suggests healthy breaks when you've been at it too long. "Too long" is configurable.
 - **Mistress Mode** (opt-in): enforces breaks to keep your RSI from acting up. Enforcement is configurable and optionally lets you break out by typing the safe word, UNCLE.
 - **New Entropy**: downloads fresh silly units from `https://spacetime.silentmedia.com/units` once a day, plus extra stretch reminders from `.../quips`.
@@ -62,7 +62,7 @@ For quick iteration you can also run `swift run` from `macos/`. The permission t
 
 ## Building (Linux)
 
-The Linux version is `stcd`: a top-bar icon with the same menu, Nanny and Mistress Modes, New Entropy and the leaderboard. Most settings are command-line for now, and there are no graphs or conversion windows yet. It's been tried on Ubuntu with GNOME on Wayland.
+The Linux version is `stcd`: a top-bar icon with the same menu, Time Graphs, the Conversion Tool, Nanny and Mistress Modes, New Entropy and the leaderboard. Most settings are command-line for now. It's been tried on Ubuntu with GNOME on Wayland.
 
 ```sh
 sudo apt install build-essential libsqlite3-dev libcurl4-openssl-dev libnotify-bin libgtk-3-dev libayatana-appindicator3-dev

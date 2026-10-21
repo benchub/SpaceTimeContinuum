@@ -34,6 +34,8 @@ final class Daemon {
     private(set) var nameState: NameAvailabilityChecker.State = .idle
     /// Called when `nameState` changes (the leaderboard window listens).
     var onNameStateChange: (() -> Void)?
+    /// Called after each minute is recorded (the graphs window listens).
+    var onDataChanged: (() -> Void)?
     private var stretch = StretchTracker()
     private var quipRotation = QuipRotation()
     private var downloadedStretchQuips: [String] = []
@@ -181,6 +183,12 @@ final class Daemon {
         recorder.recordKeyPress(travelMeters: meters)
     }
 
+    /// A silly rendering that's the same every time for the same value (graph tooltips redraw a lot).
+    func stableSilly(_ value: Double, _ kind: MeasureKind, salt: Int = 0) -> String {
+        var rng = SeededRandom(value, salt: salt)
+        return formatter.format(value, kind, using: &rng)
+    }
+
     private func persist(_ rollup: MinuteRollup) {
         do {
             try store.record(rollup)
@@ -195,6 +203,7 @@ final class Daemon {
             if !settings.mistressEnabled { cancelMistress() }
             tray?.refreshToggles()
         }
+        onDataChanged?()
         checkNanny()
         checkStretch(rollup)
         checkLockouts(rollup)
