@@ -187,6 +187,24 @@ final class MistressTests: XCTestCase {
         XCTAssertEqual(s.ingest(minuteStart: 240, activity: typing, rules: rules), [])
     }
 
+    /// Use during a warning or lockout doesn't count toward the next break.
+    func testSchedulerPausesWhileEnforced() {
+        var rules = MistressRules()
+        rules.keyboardLockEnabled = true
+        rules.keyboardEveryMinutes = 3
+        var s = LockoutScheduler()
+        let typing = Activity(keyActiveSeconds: 10)
+        XCTAssertEqual(s.ingest(minuteStart: 0, activity: typing, rules: rules), [])
+        XCTAssertEqual(s.ingest(minuteStart: 60, activity: typing, rules: rules), [])
+        XCTAssertEqual(s.ingest(minuteStart: 120, activity: typing, rules: rules).count, 1)
+        for m in 3..<20 {
+            XCTAssertEqual(s.ingest(minuteStart: Int64(m * 60), activity: typing, rules: rules, enforced: [.keyboard]), [])
+        }
+        XCTAssertEqual(s.ingest(minuteStart: 1200, activity: typing, rules: rules), [])
+        XCTAssertEqual(s.ingest(minuteStart: 1260, activity: typing, rules: rules), [])
+        XCTAssertEqual(s.ingest(minuteStart: 1320, activity: typing, rules: rules).count, 1)
+    }
+
     func testSchedulerIgnoresDisabledDevicesAndKeepsTripsSeparate() {
         var rules = MistressRules()
         rules.keyboardLockEnabled = true

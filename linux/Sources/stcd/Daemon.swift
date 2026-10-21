@@ -246,7 +246,8 @@ final class Daemon {
 
     private func checkLockouts(_ rollup: MinuteRollup) {
         guard settings.mistressEnabled else { lockouts.reset(); return }
-        for trip in lockouts.ingest(minuteStart: rollup.minuteStart, activity: rollup.activity, rules: settings.mistressRules) {
+        for trip in lockouts.ingest(minuteStart: rollup.minuteStart, activity: rollup.activity, rules: settings.mistressRules,
+                                           enforced: engine.enforcedDevices) {
             let what = trip.device == .keyboard ? "keyboard" : "mouse"
             startEnforcement(devices: [trip.device], reason: "Time for a \(what) break", lockMinutes: trip.lockMinutes)
         }

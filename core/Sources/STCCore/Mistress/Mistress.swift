@@ -34,14 +34,18 @@ public struct LockoutScheduler: Sendable {
 
     /// Counts the minute as used for each device that saw input, and reports devices that reached
     /// their limit, each with its own lock length.
-    public mutating func ingest(minuteStart: Int64, activity: Activity, rules: MistressRules) -> [Trip] {
+    ///
+    /// `enforced` devices (warning or locked) aren't counted: their next stretch of use starts
+    /// once the break is over, not when it was called for.
+    public mutating func ingest(minuteStart: Int64, activity: Activity, rules: MistressRules,
+                                enforced: Set<InputDevice> = []) -> [Trip] {
         var trips: [Trip] = []
         for device in InputDevice.allCases {
             let enabled = device == .keyboard ? rules.keyboardLockEnabled : rules.mouseLockEnabled
             let every = device == .keyboard ? rules.keyboardEveryMinutes : rules.mouseEveryMinutes
             let lock = device == .keyboard ? rules.keyboardLockMinutes : rules.mouseLockMinutes
             let seconds = device == .keyboard ? activity.keyActiveSeconds : activity.pointerActiveSeconds
-            guard enabled else { usedMinutes[device] = 0; continue }
+            guard enabled, !enforced.contains(device) else { usedMinutes[device] = 0; continue }
             if seconds > 0, lastCountedMinute[device] != minuteStart {
                 lastCountedMinute[device] = minuteStart
                 usedMinutes[device, default: 0] += 1
@@ -81,6 +85,9 @@ public struct EnforcementEngine: Sendable {
     private var nextID = 1
 
     public init() {}
+
+    /// Devices with a warning or lockout in progress.
+    public var enforcedDevices: Set<InputDevice> { Set(active.map(\.device)) }
 
     /// Devices blocked right now, by enforcements in their lockout phase.
     public var lockedDevices: Set<InputDevice> {
